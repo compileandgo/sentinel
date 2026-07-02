@@ -1,0 +1,27 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Local env keys and outputs
+.env
+output/
+.cache/
+
+# AI assistant tooling
+.agents/
+
+# Logs and scratch files
+server.log
+*.log
+
+# Stray research output files
+*.md
+!README.md
+

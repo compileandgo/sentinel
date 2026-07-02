@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: sentinel
+    runtime: python
+    buildCommand: pip install uv && uv sync
+    startCommand: python src/web/app.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12

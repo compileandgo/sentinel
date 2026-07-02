@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel Deep Research Workspace</title>
+    <!-- Google Fonts: Inter & Fira Code -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Marked Markdown Parser CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Supabase JS Client CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Highlight.js syntax highlighting CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <link rel="stylesheet" href="style.css?v=15">
+</head>
+<body>
+    <div class="app-container hidden">
+        
+        <!-- 1. Left Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <div class="brand-logo-container" id="sidebar-logo-toggle" title="Toggle Sidebar">
+                        <!-- Scientific SVG Logo -->
+                        <svg class="brand-logo" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg">
+                            <ellipse cx="12" cy="12" rx="13.51" ry="6.14" transform="translate(-4.97 12) rotate(-45)"></ellipse>
+                            <ellipse cx="12" cy="12" rx="6.14" ry="13.51" transform="translate(-4.97 12) rotate(-45)"></ellipse>
+                            <circle cx="12" cy="12" r="0.95"></circle>
+                        </svg>
+                        <!-- Sidebar toggle icon shown on hover when collapsed -->
+                        <svg class="sidebar-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="9" y1="3" x2="9" y2="21"></line>
+                        </svg>
+                    </div>
+                    <span class="brand-name">Sentinel</span>
+                </div>
+                <button class="icon-btn sidebar-header-toggle" id="sidebar-close-btn" title="Collapse Sidebar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="9" y1="3" x2="9" y2="21"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Sidebar Navigation -->
+            <div class="sidebar-nav">
+                <button class="nav-btn active" id="new-research-nav">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    <span>New chat</span>
+                </button>
+                <button class="nav-btn" id="search-chats-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <span>Search chats</span>
+                </button>
+                <button class="nav-btn" id="images-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    <span>Images</span>
+                </button>
+                <button class="nav-btn" id="library-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                    <span>Library</span>
+                </button>
+            </div>
+
+            <!-- Scrollable Past Briefs / History List Wrapper with Gradients -->
+            <div class="sidebar-recent-wrapper">
+                <div class="recent-top-gradient"></div>
+                <div class="sidebar-section recent-section">
+                    <div class="section-header">
+                        <span class="section-title">Recent</span>
+                    </div>
+                    <div id="recent-briefs-list" class="recent-list">
+                        <div class="recent-item loading">Loading history...</div>
+                    </div>
+                </div>
+                <div class="recent-bottom-gradient"></div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="avatar" id="user-avatar">...</div>
+                    <span class="username" id="username-display">Unknown</span>
+                </div>
+                <button class="icon-btn" id="settings-btn" title="Settings">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </button>
+            </div>
+        </aside>
+
+        <!-- 2. Chat Workspace (Middle/Left) -->
+        <main class="chat-area">
+            <!-- Mobile Top Bar -->
+            <header class="mobile-header">
+                <button class="mobile-menu-btn" id="mobile-menu-btn" title="Toggle Sidebar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+                <div class="mobile-brand">Sentinel</div>
+                <button class="mobile-new-chat-btn" id="mobile-new-chat-btn" title="New Chat">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                </button>
+            </header>
+
+            <div class="chat-top-gradient"></div>
+
+            <!-- Chat Search View -->
+            <div id="search-view" class="search-view hidden">
+                <div class="search-view-container">
+                    <div class="search-input-wrapper">
+                        <svg class="search-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input type="text" id="chat-search-input" placeholder="Search chats..." autocomplete="off">
+                        <button type="button" id="clear-search-btn" class="clear-search-btn hidden">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="search-results-section">
+                        <h3 class="search-results-heading">Results</h3>
+                        <div id="search-results-list" class="search-results-list">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat message streams -->
+            <div id="chat-messages" class="chat-messages">
+                <!-- Idle Welcome/Loading screen -->
+                <div id="idle-welcome" class="welcome-screen">
+                    <div class="welcome-spinner hidden" id="welcome-plan-spinner">
+                        <div class="pulse-ring"></div>
+                        <span class="pulse-text">Generating research plan...</span>
+                    </div>
+                    <div class="welcome-text" style="text-align: center;">
+                        <h2 style="font-size: 24px; font-weight: 500; margin-bottom: 12px;">Research anything with Sentinel</h2>
+                        <p style="color: var(--text-muted); font-size: 14px;">Sentinel synthesizes no-bluff intelligence briefs with complete data and citations.</p>
+                    </div>
+                </div>
+
+                <!-- Active Chat Stream -->
+                <div id="active-chat-content" class="active-chat-content hidden">
+                    <!-- User Message Bubble -->
+                    <div class="message user-message">
+                        <div class="message-bubble" id="user-query-bubble">
+                            <!-- Populated with query -->
+                        </div>
+                    </div>
+
+                    <!-- Assistant Response Card containing Plan Checklist -->
+                    <div class="message assistant-message">
+                        <div class="avatar-star">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <ellipse cx="12" cy="12" rx="13.51" ry="6.14" transform="translate(-4.97 12) rotate(-45)"></ellipse>
+                                <ellipse cx="12" cy="12" rx="6.14" ry="13.51" transform="translate(-4.97 12) rotate(-45)"></ellipse>
+                                <circle cx="12" cy="12" r="0.95"></circle>
+                            </svg>
+                        </div>
+                        <div class="message-content">
+                            <!-- Plan Loader -->
+                            <div class="plan-loader hidden" id="plan-generation-loader">
+                                <div class="spinner-ring"></div>
+                                <span class="loader-text">Generating research plan...</span>
+                            </div>
+                            
+                            <span class="message-intro-text">Here's my plan to tackle that topic. Let me know if you need to make changes.</span>
+                            
+                            <!-- Plan Card -->
+                            <div class="plan-card">
+                                <div class="plan-card-header">
+                                    <h4 id="plan-title">Research Plan</h4>
+                                </div>
+                                <div class="plan-steps">
+                                    <!-- Step 1: Research Websites -->
+                                    <div class="plan-step" id="step-websites">
+                                        <div class="step-icon">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <line x1="2" y1="12" x2="22" y2="12"></line>
+                                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                                            </svg>
+                                        </div>
+                                        <div class="step-info">
+                                            <span class="step-title-text">Research Websites</span>
+                                            <div class="step-bullets" id="plan-bullets">
+                                                <!-- Dynamic subagent tasks bullet list -->
+                                            </div>
+                                            <span id="bullets-more-btn" class="step-more hidden">+ 3 more angles</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Step 2: Analyze Results -->
+                                    <div class="plan-step" id="step-analyze">
+                                        <div class="step-icon">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                                <line x1="18" y1="20" x2="18" y2="10"></line>
+                                                <line x1="12" y1="20" x2="12" y2="4"></line>
+                                                <line x1="6" y1="20" x2="6" y2="14"></line>
+                                            </svg>
+                                        </div>
+                                        <div class="step-info">
+                                            <span class="step-title-text">Analyze Results</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Step 3: Create Report -->
+                                    <div class="plan-step" id="step-report">
+                                        <div class="step-icon">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                                <polyline points="14 2 14 8 20 8"></polyline>
+                                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                                <polyline points="10 9 9 9 8 9"></polyline>
+                                            </svg>
+                                        </div>
+                                        <div class="step-info">
+                                            <span class="step-title-text">Create Report</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Step 4: Ready in a few mins -->
+                                    <div class="plan-step" id="step-ready">
+                                        <div class="step-icon">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <polyline points="12 6 12 12 16 14"></polyline>
+                                            </svg>
+                                        </div>
+                                        <div class="step-info">
+                                            <span class="step-title-text" id="step-ready-text">Ready in a few mins</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="plan-actions">
+                                    <button class="btn-card-secondary" id="edit-plan-btn">Edit plan</button>
+                                    <button class="btn-card-primary" id="start-research-btn">Start research</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Floating Input Card -->
+            <div class="input-container-outer">
+                <form id="research-form" class="input-card">
+                    <textarea id="topic-input" placeholder="Ask Sentinel to research..." rows="1" required></textarea>
+                    
+                    <div class="input-card-row">
+                        <div class="input-row-left">
+                            <!-- Custom attachment button/icon: simple plus -->
+                            <div class="plus-dropdown-wrapper" style="position: relative; display: inline-block;">
+                                <button type="button" class="icon-btn" id="plus-dropdown-btn" title="Attachments & options">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                </button>
+                                <div class="plus-dropdown-menu hidden" id="plus-dropdown-menu">
+                                    <div class="plus-dropdown-item" id="plus-opt-sources">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                                        </svg>
+                                        <span>Sources</span>
+                                    </div>
+                                    <div class="plus-dropdown-item" id="plus-opt-files">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                            <polyline points="17 8 12 3 7 8"></polyline>
+                                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                                        </svg>
+                                        <span>Files</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button type="button" id="deep-research-btn" class="badge-deep-research active" title="Toggle research mode">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                                </svg>
+                                <span>Deep Research</span>
+                            </button>
+                            
+                            <!-- Model select dropdown -->
+                            <div class="dropdown-wrapper">
+                                <select id="model-select">
+                                    <option value="flash">Flash</option>
+                                    <option value="pro">Pro</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Microphone icon -->
+                            <button type="button" class="icon-btn" title="Voice input">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                    <line x1="12" y1="19" x2="12" y2="23"></line>
+                                    <line x1="8" y1="23" x2="16" y2="23"></line>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="input-row-right">
+                            <!-- Send/Cancel toggle buttons -->
+                            <button type="submit" id="send-query-btn" class="send-btn" title="Start generation">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <line x1="12" y1="19" x2="12" y2="5"></line>
+                                    <polyline points="5 12 12 5 19 12"></polyline>
+                                </svg>
+                            </button>
+                            
+                            <button type="button" id="stop-research-btn" class="stop-btn hidden" title="Cancel research">
+                                <div class="stop-square"></div>
+                            </button>
+                        </div>
+                    </div>
+
+                </form>
+                <span class="disclaimer-text">Sentinel can make mistakes. Verify important info.</span>
+            </div>
+        </main>
+
+        <!-- 3. Research Viewer Side Panel (Right) -->
+        <aside id="research-viewer" class="research-viewer collapsed">
+            <header class="viewer-header">
+                <h3 id="viewer-research-title">Research Viewer</h3>
+                <div class="viewer-controls">
+                    
+                    <!-- Table of Contents Dropdown -->
+                    <div class="contents-dropdown-wrapper" id="contents-dropdown-wrapper">
+                        <button class="viewer-control-btn" id="contents-dropdown-btn">
+                            <span>Outline</span>
+                            <span class="arrow">▾</span>
+                        </button>
+                        <div class="contents-menu hidden" id="contents-menu">
+                            <!-- Dynamic outline -->
+                        </div>
+                    </div>
+
+                    <!-- Share and Export Dropdown -->
+                    <div class="export-dropdown-wrapper" id="export-dropdown-wrapper">
+                        <button class="viewer-control-btn" id="export-dropdown-btn">
+                            <span>Export</span>
+                            <span class="arrow">▾</span>
+                        </button>
+                        <div class="export-menu hidden" id="export-menu">
+                            <div class="dropdown-item" id="export-md-btn">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                <span>Export as Markdown</span>
+                            </div>
+                            <div class="dropdown-item" id="export-copy-btn">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                <span>Copy to Clipboard</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Create Dropdown (Blue Button) -->
+                    <div class="create-dropdown-wrapper" id="create-dropdown-wrapper">
+                        <button class="create-btn" id="create-dropdown-btn">
+                            <span>Create</span>
+                            <span class="arrow">▾</span>
+                        </button>
+                        <div class="create-menu hidden" id="create-menu">
+                            <div class="dropdown-item" id="create-summary-btn">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                </svg>
+                                <span>Document summary</span>
+                            </div>
+                            <div class="dropdown-item" id="create-outline-btn">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                                    <line x1="2" y1="10" x2="22" y2="10"></line>
+                                    <path d="M8 21h8"></path>
+                                    <path d="M12 17v4"></path>
+                                </svg>
+                                <span>Presentation outline</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Close side panel button -->
+                    <button class="close-viewer-btn" id="close-viewer-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <div class="viewer-body">
+                
+                <!-- Thinking area -->
+                <div class="thinking-area" id="thinking-area">
+                    <!-- Pulsing Skeleton during planning/wait -->
+                    <div class="skeleton-loader" id="thinking-skeleton">
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line"></div>
+                    </div>
+                    <!-- Real-time log list -->
+                    <div class="thinking-logs hidden" id="thinking-logs">
+                        <!-- Pushed dynamically -->
+                    </div>
+                </div>
+
+                <!-- Sources Panel -->
+                <div class="sources-panel hidden" id="sources-panel">
+                    <div class="sources-search-container">
+                        <div class="search-engine-icon" title="Google Search">
+                            <svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+                                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+                            </svg>
+                        </div>
+                        <div class="sources-grid" id="sources-grid">
+                            <!-- Cards or skeletons added incrementally -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report display markdown content -->
+                <article class="report-content hidden" id="report-content">
+                    <!-- Rendered markdown text goes here -->
+                </article>
+
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- Authentication Container (Glassmorphic) -->
+    <div id="auth-container" class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <svg class="brand-logo" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <ellipse cx="12" cy="12" rx="13.51" ry="6.14" transform="translate(-4.97 12) rotate(-45)"></ellipse>
+                    <ellipse cx="12" cy="12" rx="6.14" ry="13.51" transform="translate(-4.97 12) rotate(-45)"></ellipse>
+                    <circle cx="12" cy="12" r="0.95"></circle>
+                </svg>
+                <h1 class="auth-title">Welcome to Sentinel</h1>
+                <p class="auth-subtitle">Verify your identity to access geopolitical intelligence</p>
+            </div>
+            
+            <div class="auth-tabs" id="auth-tabs-container">
+                <button class="auth-tab active" id="tab-login">Sign In</button>
+                <button class="auth-tab" id="tab-signup">Sign Up</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form">
+                <div class="form-group">
+                    <label for="login-email">Email Address</label>
+                    <input type="email" id="login-email" required placeholder="you@example.com">
+                </div>
+                <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label for="login-password" style="margin-bottom: 0;">Password</label>
+                        <a href="#" id="forgot-password-link" style="font-size: 12px; color: var(--text-link); text-decoration: none;">Forgot password?</a>
+                    </div>
+                    <input type="password" id="login-password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="auth-btn">Sign In</button>
+            </form>
+
+            <!-- Signup Form -->
+            <form id="signup-form" class="auth-form hidden">
+                <div class="form-group">
+                    <label for="signup-username">Username / Full Name</label>
+                    <input type="text" id="signup-username" required placeholder="yourusername">
+                </div>
+                <div class="form-group">
+                    <label for="signup-email">Email Address</label>
+                    <input type="email" id="signup-email" required placeholder="you@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="signup-password">Password (min 6 characters)</label>
+                    <input type="password" id="signup-password" required minlength="6" placeholder="••••••••">
+                </div>
+                <button type="submit" class="auth-btn">Create Account</button>
+            </form>
+
+            <!-- Reset Password Request Form -->
+            <form id="reset-password-form" class="auth-form hidden">
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
+                    Enter your email address and we'll send you a link to reset your password.
+                </p>
+                <div class="form-group">
+                    <label for="reset-email">Email Address</label>
+                    <input type="email" id="reset-email" required placeholder="you@example.com">
+                </div>
+                <button type="submit" class="auth-btn">Send Reset Link</button>
+                <div style="text-align: center; margin-top: 12px;">
+                    <a href="#" id="back-to-login-link" style="font-size: 13px; color: var(--text-link); text-decoration: none;">Back to Sign In</a>
+                </div>
+            </form>
+
+            <!-- Update Password Form (Recovery) -->
+            <form id="update-password-form" class="auth-form hidden">
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
+                    Enter your new password below.
+                </p>
+                <div class="form-group">
+                    <label for="update-password">New Password (min 6 characters)</label>
+                    <input type="password" id="update-password" required minlength="6" placeholder="••••••••">
+                </div>
+                <button type="submit" class="auth-btn">Update Password</button>
+            </form>
+
+            <div class="auth-feedback" id="auth-feedback"></div>
+        </div>
+    </div>
+
+    <script src="app.js?v=17"></script>
+</body>
+</html>
