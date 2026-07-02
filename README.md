@@ -136,7 +136,7 @@ Sentinel is configured using environment variables. An example layout is located
 ### Setup
 1. Clone the repository:
    ```bash
-   git clone <repository_url> sentinel
+   git clone https://github.com/compileandgo/sentinel.git
    cd sentinel
    ```
 2. Initialize virtual environment and install dependencies:
