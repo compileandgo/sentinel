@@ -25,3 +25,4 @@ server.log
 *.md
 !README.md
 
+run_ui.py
