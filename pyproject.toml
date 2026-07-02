@@ -13,4 +13,8 @@ dependencies = [
     "supabase>=2.31.0",
     "tavily-python>=0.7.26",
     "uvicorn>=0.49.0",
+    "python-dotenv>=1.0.1",
+    "pyjwt>=2.8.0",
+    "langgraph>=0.2.0",
+    "langchain-google-genai>=2.0.0",
 ]
