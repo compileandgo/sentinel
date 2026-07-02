@@ -67,22 +67,34 @@ body.light-theme {
     background: rgba(255, 255, 255, 0.25);
 }
 
+html {
+    height: 100%;
+    height: -webkit-fill-available;
+    margin: 0;
+    padding: 0;
+}
+
 body {
     background-color: var(--bg-black);
     color: var(--text-primary);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     overflow: hidden;
-    height: 100vh;
+    height: 100%;
+    height: -webkit-fill-available;
+    height: 100dvh;
 }
 
 /* App Wrapper Grid */
 .app-container {
     display: flex;
     width: 100vw;
+    width: 100dvw;
     height: 100vh;
+    height: 100dvh;
     position: relative;
     background-color: var(--bg-black);
+    overflow: hidden;
 }
 
 /* ──────────────────────────────────────────────────────── */
@@ -2161,9 +2173,10 @@ body.light-theme .send-btn {
         height: 100% !important;
         z-index: 120;
         width: 260px !important;
-        transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease !important;
+        transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease, visibility 0.3s !important;
         transform: translateX(0);
         box-shadow: 5px 0 25px rgba(0,0,0,0.5);
+        visibility: visible;
     }
     
     .sidebar.collapsed {
@@ -2171,7 +2184,8 @@ body.light-theme .send-btn {
         opacity: 0 !important;
         pointer-events: none !important;
         box-shadow: none;
-        width: 260px !important; /* Keep width to prevent double transitions */
+        width: 260px !important;
+        visibility: hidden;
     }
 
     .research-viewer {
@@ -2183,21 +2197,56 @@ body.light-theme .send-btn {
         top: 0;
         bottom: 0;
         z-index: 110;
-        transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0.3s;
         transform: translateX(0);
+        visibility: visible;
     }
     
     .research-viewer.collapsed {
         transform: translateX(100%);
         pointer-events: none;
+        visibility: hidden;
     }
     
     .chat-messages {
-        padding: 70px 16px 220px 16px !important;
+        padding: 70px 16px 200px 16px !important;
     }
     
     .input-container-outer {
         padding: 0 16px 16px 16px !important;
+    }
+
+    /* Keep viewer body content visible above Android nav buttons */
+    .viewer-body {
+        padding-bottom: 80px !important;
+    }
+
+    /* Fixed full-screen outline menu on mobile to avoid overflow */
+    .contents-menu {
+        width: calc(100vw - 32px) !important;
+        max-width: 100vw !important;
+        position: fixed !important;
+        top: 60px !important;
+        left: 16px !important;
+        right: 16px !important;
+        margin-top: 0 !important;
+        max-height: calc(100vh - 120px) !important;
+        max-height: calc(100dvh - 120px) !important;
+        overflow-y: auto !important;
+    }
+
+    /* Compact Deep Research badge on mobile */
+    .badge-deep-research span {
+        display: none !important;
+    }
+    .badge-deep-research {
+        padding: 6px !important;
+        border-radius: 50% !important;
+        width: 32px !important;
+        height: 32px !important;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
     }
 }
 
