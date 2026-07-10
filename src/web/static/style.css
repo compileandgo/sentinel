@@ -2966,4 +2966,197 @@ button:disabled,
     pointer-events: none !important;
 }
 
+/* ──────────────────────────────────────────────────────── */
+/* Custom Mermaid Diagram Style Overrides (Theme Responsive) */
+/* ──────────────────────────────────────────────────────── */
+.mermaid-block,
+.mermaid {
+    background: transparent !important;
+    background-color: transparent !important;
+    cursor: zoom-in;
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
 
+.mermaid-block:hover {
+    transform: scale(1.015);
+}
+
+/* Force container transparent */
+.mermaid-block svg {
+    background: transparent !important;
+    background-color: transparent !important;
+    max-width: 100%;
+    height: auto;
+}
+
+/* Node shapes & boxes - transparent fill, theme border */
+.mermaid-block .node rect,
+.mermaid-block .node circle,
+.mermaid-block .node polygon,
+.mermaid-block .node path,
+.mermaid-block .node.rect,
+.mermaid-block .node.circle,
+.mermaid-block .node.roundrect,
+.mermaid-block .node.stadium,
+.mermaid-block .node.subproc,
+.mermaid-block .node.hexagon,
+.mermaid-block .node.rhombus,
+.mermaid-block rect.actor,
+.mermaid-block .actor,
+.mermaid-block rect.note,
+.mermaid-block .note rect {
+    fill: transparent !important;
+    fill-opacity: 0 !important;
+    stroke: var(--text-primary) !important;
+    stroke-width: 2px !important;
+}
+
+/* Links, edges, and connection paths - MUST HAVE fill: none to prevent wedge shapes! */
+.mermaid-block .edgePath .path,
+.mermaid-block .edgePath path,
+.mermaid-block .flowchart-link,
+.mermaid-block .connection,
+.mermaid-block .relation,
+.mermaid-block .messageLine0,
+.mermaid-block .messageLine1,
+.mermaid-block .loopLine,
+.mermaid-block path.link,
+.mermaid-block path.transition {
+    fill: none !important;
+    fill-opacity: 0 !important;
+    stroke: var(--text-primary) !important;
+    stroke-width: 2px !important;
+}
+
+/* Markers and Arrowheads - MUST BE filled with primary color */
+.mermaid-block marker path,
+.mermaid-block marker polygon,
+.mermaid-block .marker,
+.mermaid-block #arrowhead path,
+.mermaid-block .arrowheadDom {
+    fill: var(--text-primary) !important;
+    fill-opacity: 1 !important;
+    stroke: var(--text-primary) !important;
+}
+
+/* Labels and Texts - clean fonts, size, and high contrast color */
+.mermaid-block text,
+.mermaid-block text *,
+.mermaid-block .node .label,
+.mermaid-block .nodeLabel,
+.mermaid-block .nodeLabel *,
+.mermaid-block foreignObject,
+.mermaid-block foreignObject *,
+.mermaid-block .labelText,
+.mermaid-block .loopText,
+.mermaid-block .loopText span,
+.mermaid-block .noteText,
+.mermaid-block .noteText span,
+.mermaid-block .actor,
+.mermaid-block .actor-man,
+.mermaid-block .actor span {
+    fill: var(--text-primary) !important;
+    color: var(--text-primary) !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    font-family: var(--font-sans) !important;
+    text-anchor: middle !important;
+}
+
+/* Special labels background (e.g. YES/NO on flowchart edges) */
+.mermaid-block .edgeLabel rect,
+.mermaid-block .edgeLabel .label rect,
+.mermaid-block .labelBox {
+    fill: var(--bg-card) !important;
+    stroke: var(--border-card) !important;
+}
+
+/* Diagram preview modal sizing */
+.diagram-preview-container svg {
+    max-height: 60vh;
+    width: auto !important;
+}
+
+.diagram-preview-container .node rect,
+.diagram-preview-container .node circle,
+.diagram-preview-container .node polygon,
+.diagram-preview-container .node path,
+.diagram-preview-container .node.rect,
+.diagram-preview-container .node.circle,
+.diagram-preview-container .node.roundrect,
+.diagram-preview-container .node.stadium,
+.diagram-preview-container .node.subproc,
+.diagram-preview-container .node.hexagon,
+.diagram-preview-container .node.rhombus,
+.diagram-preview-container rect.actor,
+.diagram-preview-container .actor,
+.diagram-preview-container rect.note,
+.diagram-preview-container .note rect {
+    fill: transparent !important;
+    fill-opacity: 0 !important;
+    stroke: var(--text-primary) !important;
+    stroke-width: 2px !important;
+}
+
+.diagram-preview-container .edgePath .path,
+.diagram-preview-container .edgePath path,
+.diagram-preview-container .flowchart-link,
+.diagram-preview-container .connection,
+.diagram-preview-container .relation,
+.diagram-preview-container .messageLine0,
+.diagram-preview-container .messageLine1,
+.diagram-preview-container .loopLine,
+.diagram-preview-container path.link,
+.diagram-preview-container path.transition {
+    fill: none !important;
+    fill-opacity: 0 !important;
+    stroke: var(--text-primary) !important;
+    stroke-width: 2px !important;
+}
+
+.diagram-preview-container marker path,
+.diagram-preview-container marker polygon,
+.diagram-preview-container .marker,
+.diagram-preview-container #arrowhead path,
+.diagram-preview-container .arrowheadDom {
+    fill: var(--text-primary) !important;
+    fill-opacity: 1 !important;
+    stroke: var(--text-primary) !important;
+}
+
+.diagram-preview-container text,
+.diagram-preview-container text *,
+.diagram-preview-container .node .label,
+.diagram-preview-container .nodeLabel,
+.diagram-preview-container .nodeLabel *,
+.diagram-preview-container foreignObject,
+.diagram-preview-container foreignObject *,
+.diagram-preview-container .labelText,
+.diagram-preview-container .loopText,
+.diagram-preview-container .loopText span,
+.diagram-preview-container .noteText,
+.diagram-preview-container .noteText span,
+.diagram-preview-container .actor,
+.diagram-preview-container .actor-man,
+.diagram-preview-container .actor span {
+    fill: var(--text-primary) !important;
+    color: var(--text-primary) !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    font-family: var(--font-sans) !important;
+    text-anchor: middle !important;
+}
+
+/* Save dropdown menu animations and hover effects */
+.save-dropdown-menu.hidden {
+    display: none !important;
+}
+
+.save-dropdown-item {
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.save-dropdown-item:hover {
+    background-color: var(--bg-card-hover) !important;
+    color: var(--text-primary) !important;
+}

@@ -125,6 +125,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 codeText = String(codeText);
                 lang = String(lang).trim();
 
+                // Render Mermaid diagrams natively instead of as a code block
+                if (lang === 'mermaid') {
+                    return `<div class="mermaid-block mermaid">${codeText}</div>`;
+                }
+
                 const validLang = (typeof hljs !== "undefined" && hljs.getLanguage(lang)) ? lang : 'plaintext';
                 let highlighted = codeText;
                 if (typeof hljs !== "undefined") {
@@ -149,6 +154,287 @@ document.addEventListener("DOMContentLoaded", () => {
 
         marked.use({ renderer: customRenderer });
         marked.setOptions({ gfm: true, breaks: true });
+    }
+
+    // ── Mermaid diagram renderer ───────────────────────────────────────────────
+    async function renderMermaidDiagrams(container) {
+        if (typeof mermaid === "undefined") return;
+        const blocks = container.querySelectorAll(".mermaid-block");
+        if (!blocks.length) return;
+        try {
+            await mermaid.run({ nodes: blocks });
+            
+            // Register click handlers for zooming and downloading diagrams
+            blocks.forEach(block => {
+                if (block.dataset.hasPreviewListener) return;
+                block.dataset.hasPreviewListener = "true";
+                
+                block.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    openDiagramPreviewModal(block);
+                });
+            });
+        } catch (e) {
+            // Silent — invalid diagram syntax won't crash the page
+        }
+    }
+
+    function openDiagramPreviewModal(block) {
+        const svgElement = block.querySelector("svg");
+        if (!svgElement) return;
+
+        // Determine current theme parameters for CSS injection
+        const isLightTheme = document.body.classList.contains("light-theme");
+        const textColor = isLightTheme ? "#09090b" : "#e3e3e3";
+        const canvasBg = isLightTheme ? "#ffffff" : "#0a0a0a";
+        const cardBg = isLightTheme ? "#fafafa" : "#131314";
+        const cardBorder = isLightTheme ? "#e4e4e7" : "#282a2d";
+
+        // Clone the SVG element so we can display and export it
+        const svgClone = svgElement.cloneNode(true);
+        svgClone.removeAttribute("id"); // Remove generated ID to avoid conflicts
+        svgClone.style.width = "100%";
+        svgClone.style.height = "auto";
+        svgClone.style.maxHeight = "70vh";
+
+        // Inject styles directly into the clone so they render correctly in the standalone SVG/PNG exports
+        const styleEl = document.createElementNS("http://www.w3.org/2000/svg", "style");
+        styleEl.textContent = `
+            text, text *, .nodeLabel, .nodeLabel *, foreignObject, foreignObject * {
+                fill: ${textColor} !important;
+                color: ${textColor} !important;
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+                font-size: 14px !important;
+                font-weight: 500 !important;
+                text-anchor: middle !important;
+            }
+            .node rect, .node circle, .node polygon, .node path,
+            .node.rect, .node.circle, .node.roundrect, .node.stadium,
+            .node.subproc, .node.hexagon, .node.rhombus,
+            rect.actor, .actor, rect.note, .note rect {
+                fill: transparent !important;
+                fill-opacity: 0 !important;
+                stroke: ${textColor} !important;
+                stroke-width: 2px !important;
+            }
+            .edgePath .path, .edgePath path, .flowchart-link,
+            .connection, .relation, .messageLine0, .messageLine1,
+            .loopLine, path.link, path.transition {
+                fill: none !important;
+                fill-opacity: 0 !important;
+                stroke: ${textColor} !important;
+                stroke-width: 2px !important;
+            }
+            marker path, marker polygon, .marker, #arrowhead path, .arrowheadDom {
+                fill: ${textColor} !important;
+                fill-opacity: 1 !important;
+                stroke: ${textColor} !important;
+            }
+            .edgeLabel rect, .edgeLabel .label rect, .labelBox {
+                fill: ${cardBg} !important;
+                stroke: ${cardBorder} !important;
+            }
+        `;
+        svgClone.appendChild(styleEl);
+
+        const overlay = document.createElement("div");
+        overlay.className = "modal-overlay active";
+        
+        overlay.innerHTML = `
+            <div class="modal-content" style="max-width: 800px; width: 90%; background-color: var(--bg-sidebar);">
+                <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid var(--border-main); padding-bottom:12px;">
+                    <div class="modal-title" style="font-size:16px; font-weight:600; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                        <span>Technical Diagram Preview</span>
+                    </div>
+                    <button class="modal-close-btn" id="preview-close-x" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body" style="display:flex; align-items:center; justify-content:center; padding:20px; background-color:var(--bg-black); border-radius:8px; border:1px solid var(--border-main); overflow:auto; min-height:300px;">
+                    <div class="diagram-preview-container" style="width:100%; display:flex; justify-content:center; max-height: 60vh;"></div>
+                </div>
+                <div class="modal-footer" style="margin-top:20px; display:flex; justify-content:flex-end; gap:12px; position:relative;">
+                    
+                    <!-- Save Diagram Dropdown Wrapper -->
+                    <div class="save-dropdown-wrapper" style="position:relative;">
+                        <button class="btn-primary" id="preview-save-dropdown-btn" style="display:flex; align-items:center; gap:8px; padding:8px 16px; font-size:13px; background:#0070f3; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            <span>Save Diagram</span>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-left:4px;">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                        
+                        <!-- Dropdown Options Menu -->
+                        <div class="save-dropdown-menu hidden" id="save-dropdown-menu" style="position:absolute; bottom:100%; right:0; margin-bottom:8px; background-color:var(--bg-sidebar); border:1px solid var(--border-card); border-radius:6px; box-shadow:0 5px 15px rgba(0,0,0,0.4); width:150px; z-index:1100; display:flex; flex-direction:column; padding:4px 0;">
+                            <div class="save-dropdown-item" id="save-as-svg" style="padding:8px 12px; font-size:13px; color:var(--text-secondary); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--font-sans);">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                                <span>Save as SVG</span>
+                            </div>
+                            <div class="save-dropdown-item" id="save-as-png" style="padding:8px 12px; font-size:13px; color:var(--text-secondary); cursor:pointer; display:flex; align-items:center; gap:8px; font-family:var(--font-sans); border-top:1px solid var(--border-main);">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                                <span>Save as PNG</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn-secondary" id="preview-close-btn" style="padding:8px 16px; font-size:13px; background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-card); border-radius:6px; cursor:pointer">Close</button>
+                </div>
+            </div>
+        `;
+        
+        // Insert the cloned SVG inside the preview container
+        overlay.querySelector(".diagram-preview-container").appendChild(svgClone);
+        document.body.appendChild(overlay);
+
+        // Click logic
+        const closeX = overlay.querySelector("#preview-close-x");
+        const closeBtn = overlay.querySelector("#preview-close-btn");
+        const dropdownBtn = overlay.querySelector("#preview-save-dropdown-btn");
+        const dropdownMenu = overlay.querySelector("#save-dropdown-menu");
+        const saveAsSvgBtn = overlay.querySelector("#save-as-svg");
+        const saveAsPngBtn = overlay.querySelector("#save-as-png");
+
+        const closePreview = () => {
+            overlay.classList.remove("active");
+            setTimeout(() => overlay.remove(), 300);
+        };
+
+        closeX.addEventListener("click", closePreview);
+        closeBtn.addEventListener("click", closePreview);
+        overlay.addEventListener("click", (e) => {
+            if (e.target === overlay) closePreview();
+        });
+
+        // Toggle dropdown
+        dropdownBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            dropdownMenu.classList.toggle("hidden");
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener("click", () => {
+            dropdownMenu.classList.add("hidden");
+        });
+
+        const timestamp = Date.now();
+        const baseFileName = `sentinel-diagram-${timestamp}`;
+
+        // Save as SVG logic
+        saveAsSvgBtn.addEventListener("click", () => {
+            try {
+                const serializer = new XMLSerializer();
+                let source = serializer.serializeToString(svgClone);
+
+                // Add standard XML namespaces
+                if (!source.match(/^<svg[^>]+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/)) {
+                    source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+                }
+                if (!source.match(/^<svg[^>]+xmlns:xlink="http:\/\/www\.w3\.org\/1999\/xlink"/)) {
+                    source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+                }
+
+                // Add XML declaration
+                source = '<?xml version="1.0" encoding="utf-8"?>\n' + source;
+
+                const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
+                const downloadLink = document.createElement("a");
+                downloadLink.href = url;
+                downloadLink.download = `${baseFileName}.svg`;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                showToast("Diagram Saved", "The diagram has been downloaded in SVG format.");
+            } catch (err) {
+                showToast("Download Failed", "Unable to export diagram to SVG.");
+            }
+        });
+
+        // Save as PNG logic
+        saveAsPngBtn.addEventListener("click", () => {
+            try {
+                const serializer = new XMLSerializer();
+                let source = serializer.serializeToString(svgClone);
+
+                // Add standard XML namespaces
+                if (!source.match(/^<svg[^>]+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/)) {
+                    source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+                }
+                if (!source.match(/^<svg[^>]+xmlns:xlink="http:\/\/www\.w3\.org\/1999\/xlink"/)) {
+                    source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+                }
+
+                source = '<?xml version="1.0" encoding="utf-8"?>\n' + source;
+
+                const img = new Image();
+                const svgBlob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
+                const url = URL.createObjectURL(svgBlob);
+
+                img.onload = function() {
+                    try {
+                        // Extract bounds from original SVG
+                        const rect = svgElement.getBoundingClientRect();
+                        const width = rect.width || svgElement.viewBox.baseVal.width || 800;
+                        const height = rect.height || svgElement.viewBox.baseVal.height || 600;
+
+                        // High-resolution rendering scale
+                        const scale = 2;
+                        const canvas = document.createElement("canvas");
+                        canvas.width = width * scale;
+                        canvas.height = height * scale;
+
+                        const ctx = canvas.getContext("2d");
+                        
+                        // Fill background color based on theme
+                        ctx.fillStyle = canvasBg;
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                        ctx.scale(scale, scale);
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        const pngUrl = canvas.toDataURL("image/png");
+                        const downloadLink = document.createElement("a");
+                        downloadLink.href = pngUrl;
+                        downloadLink.download = `${baseFileName}.png`;
+                        document.body.appendChild(downloadLink);
+                        downloadLink.click();
+                        document.body.removeChild(downloadLink);
+
+                        URL.revokeObjectURL(url);
+                        showToast("Diagram Saved", "The diagram has been downloaded in PNG format.");
+                    } catch (err) {
+                        showToast("Export Failed", "Could not convert diagram to PNG.");
+                    }
+                };
+
+                img.onerror = function() {
+                    showToast("Export Failed", "Image rendering failed.");
+                    URL.revokeObjectURL(url);
+                };
+
+                img.src = url;
+            } catch (err) {
+                showToast("Export Failed", "Error processing SVG XML.");
+            }
+        });
     }
 
     // ── Authentication Bootstrap ──────────────────────────────────────────────
@@ -968,6 +1254,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                         if (payload.done) {
                             textTarget.classList.remove("streaming");
+                            renderMermaidDiagrams(textTarget);
                             if (activeItem) activeItem.remove();
                             // Strip title tags before passing to action setup
                             const cleanText = fullText.replace(/<title>[\s\S]*?<\/title>/i, "").trim();
@@ -1742,6 +2029,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 `;
             }
             idleWelcome.appendChild(div);
+            if (!isLoading) {
+                renderMermaidDiagrams(div);
+            }
         }
         chatMessages.scrollTop = chatMessages.scrollHeight;
         return div;
@@ -1799,6 +2089,7 @@ document.addEventListener("DOMContentLoaded", () => {
             reportContent.innerHTML = typeof marked !== "undefined"
                 ? marked.parse(displayMarkdown)
                 : `<pre>${escHtml(displayMarkdown)}</pre>`;
+            renderMermaidDiagrams(reportContent);
         } catch {
             reportContent.innerHTML = `<pre>${escHtml(displayMarkdown)}</pre>`;
         }
@@ -2390,6 +2681,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     idleWelcome.appendChild(div);
                 }
             });
+
+            // Render Mermaid diagrams for all loaded historical messages
+            renderMermaidDiagrams(idleWelcome);
 
             // Dynamic event listeners for the brief card
             const clickEl = document.getElementById("chat-brief-card-click");

@@ -147,7 +147,12 @@ SYNTHESIS_SYSTEM = (
     "   using language like 'estimated', 'projected', 'assessed as likely'. Do NOT create a standalone "
     "   'Source Confidence' table or rating section.\n"
     "10. TITLE ENVELOPE: Prepend a short, professional, topic-specific title for this research brief "
-    "   enclosed inside <title> and </title> tags, followed by two newlines, before everything else."
+    "   enclosed inside <title> and </title> tags, followed by two newlines, before everything else.\n"
+    "11. DIAGRAMS: Where a relationship map, causal chain, process flow, actor network, or structural "
+    "   hierarchy would genuinely aid understanding, embed a Mermaid diagram using a fenced code block "
+    "   with the language identifier 'mermaid'. Use graph TD for hierarchies and flows, sequenceDiagram "
+    "   for timelines, and mindmap for actor/concept maps. Keep diagrams focused and legible — no more "
+    "   than 12 nodes. Do NOT insert diagrams for purely decorative purposes."
 )
 
 SYNTHESIS_USER = (

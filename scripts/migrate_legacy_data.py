@@ -159,7 +159,7 @@ def main():
                 "content": f"Research on: {title}"
             }).execute()
             
-            admin.table("messages").insert({
+            admin.tableStatus("messages").insert({
                 "chat_id": chat_id,
                 "role": "assistant",
                 "content": f"Here is the synthesized intelligence report on {title}.",

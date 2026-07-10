@@ -18,6 +18,11 @@ def _is_rate_error(msg: str) -> bool:
     return any(k in msg for k in ("429", "rate limit", "resource_exhausted", "quota", "limit", "too many"))
 
 
+def _is_overload_error(msg: str) -> bool:
+    """503 / service unavailable — model is overloaded, not quota-exhausted."""
+    return any(k in msg for k in ("503", "unavailable", "overloaded", "high demand", "try again later"))
+
+
 def _is_permanent_quota(msg: str) -> bool:
     """Permanent (billing/daily quota) vs transient (per-minute RPM) error."""
     transient = any(k in msg for k in ("per minute", "rpm", "tpm"))
@@ -31,14 +36,20 @@ def _parse_retry_wait(err_msg: str, default: float = 3.0) -> float:
     return float(m.group(1)) + 0.5 if m else default
 
 
-def _invoke_with_retry(llm_client, messages, name: str = "LLM", max_attempts: int = 2):
-    """Single-key retry with backoff on transient rate limits."""
+def _invoke_with_retry(llm_client, messages, name: str = "LLM", max_attempts: int = 3):
+    """Single-key retry with backoff on transient rate limits and 503 overloads."""
     for attempt in range(max_attempts):
         try:
             return llm_client.invoke(messages)
         except Exception as e:
             msg = str(e).lower()
-            if _is_rate_error(msg) and attempt < max_attempts - 1:
+            is_last = attempt >= max_attempts - 1
+            if _is_overload_error(msg) and not is_last:
+                # Exponential backoff for 503: 5s, 15s
+                wait = 5.0 * (3 ** attempt)
+                print(f"  [{name}] 503 Overloaded. Waiting {wait:.0f}s before retry (attempt {attempt + 1}/{max_attempts})...")
+                time.sleep(wait)
+            elif _is_rate_error(msg) and not is_last:
                 wait = _parse_retry_wait(msg, default=(attempt + 1) * 3.0)
                 print(f"  [{name}] Rate limit hit. Waiting {wait:.1f}s (attempt {attempt + 1}/{max_attempts})...")
                 time.sleep(wait)
@@ -89,26 +100,36 @@ def _try_gemini_pool(messages, model, temperature):
         raise RuntimeError("no gemini API keys configured.")
 
     last_err = None
-    for key in keys:
-        if _gemini_exhausted.get(key):
-            print(f"  gemini: skipping exhausted key ...{key[-6:]}")
-            continue
-        try:
-            llm = ChatGoogleGenerativeAI(
-                model=model or Config.LLM_MODEL,
-                temperature=temperature if temperature is not None else Config.LLM_TEMPERATURE,
-                google_api_key=key,
-            )
-            result = _invoke_with_retry(llm, messages, name=f"Gemini[...{key[-6:]}]")
-            return result
-        except Exception as e:
-            msg = str(e).lower()
-            if _is_permanent_quota(msg):
-                print(f"  [Gemini] Key ...{key[-6:]} permanently exhausted — blacklisting.")
-                _gemini_exhausted[key] = True
-            else:
-                print(f"  [Gemini] Key ...{key[-6:]} transient error: {e}")
-            last_err = e
+    primary_model = model or Config.LLM_MODEL
+    # Fallback model when primary is overloaded (503)
+    fallback_model = Config.FALLBACK_MODEL
+
+    for attempt_model in ([primary_model] + ([fallback_model] if fallback_model and fallback_model != primary_model else [])):
+        for key in keys:
+            if _gemini_exhausted.get(key):
+                print(f"  gemini: skipping exhausted key ...{key[-6:]}")
+                continue
+            try:
+                llm = ChatGoogleGenerativeAI(
+                    model=attempt_model,
+                    temperature=temperature if temperature is not None else Config.LLM_TEMPERATURE,
+                    google_api_key=key,
+                )
+                result = _invoke_with_retry(llm, messages, name=f"Gemini[{attempt_model}...{key[-6:]}]")
+                if attempt_model != primary_model:
+                    print(f"  [Gemini] Used fallback model {attempt_model} (primary was overloaded).")
+                return result
+            except Exception as e:
+                msg = str(e).lower()
+                if _is_permanent_quota(msg):
+                    print(f"  [Gemini] Key ...{key[-6:]} permanently exhausted — blacklisting.")
+                    _gemini_exhausted[key] = True
+                elif _is_overload_error(msg):
+                    # 503 = model overloaded, not key exhausted — don't blacklist
+                    print(f"  [Gemini] {attempt_model} overloaded on key ...{key[-6:]}: {e}")
+                else:
+                    print(f"  [Gemini] Key ...{key[-6:]} transient error: {e}")
+                last_err = e
 
     raise last_err or RuntimeError("All Gemini keys failed.")
 

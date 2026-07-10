@@ -22,10 +22,12 @@ def _load_key_pool(primary_env: str, numbered_prefix: str) -> list:
 
 class Config:
     # LLM settings
-    LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.5-flash")
-    SUBAGENT_MODEL = os.getenv("SUBAGENT_MODEL", "gemini-2.5-flash")
+    LLM_MODEL = os.getenv("LLM_MODEL", "gemini-3.5-flash")
+    SUBAGENT_MODEL = os.getenv("SUBAGENT_MODEL", "gemini-3.1-flash-lite")
     LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.1"))
     GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    # Automatic fallback when primary model returns 503 overload errors
+    FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "gemini-3.1-flash-lite")
 
     # Multi-key pools (primary + numbered extras)
     GOOGLE_API_KEYS: list = _load_key_pool("GOOGLE_API_KEY", "GOOGLE_API_KEY")

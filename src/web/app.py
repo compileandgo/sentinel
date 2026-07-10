@@ -887,7 +887,12 @@ def _build_system_prompt() -> str:
         "use your general knowledge to answer, but clearly state what is from the report and what "
         "is general knowledge. Use a professional, neutral tone. Format your response cleanly in markdown. "
         "Do not invent statistics that are not present in the context; if using general knowledge, specify "
-        "that it is standard industry intelligence."
+        "that it is standard industry intelligence.\n\n"
+        "DIAGRAMS: If the user asks you to draw, visualize, or diagram something, produce a Mermaid "
+        "diagram inside a fenced code block with the language identifier 'mermaid'. "
+        "Use graph TD for flows and hierarchies, sequenceDiagram for timelines, and mindmap for "
+        "concept/actor maps. Keep diagrams under 12 nodes. Only use diagrams when explicitly requested "
+        "or when a diagram clearly adds more value than prose."
     )
 
 async def _resolve_chat_context(req: "ChatRequest", user: AuthenticatedUser):
