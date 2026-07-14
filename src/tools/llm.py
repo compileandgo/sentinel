@@ -201,3 +201,30 @@ def safe_llm_invoke(
             raise gemini_fallback_err  # surface the original Gemini error
     else:
         raise gemini_fallback_err
+
+
+def safe_gemini_invoke(
+    messages: List[BaseMessage],
+    model: Optional[str] = None,
+    temperature: Optional[float] = None,
+) -> BaseMessage:
+    """Invoke Gemini pool exclusively, raising error if all keys fail."""
+    _check_cancellation()
+    all_gemini_exhausted = all(_gemini_exhausted.get(k) for k in Config.GOOGLE_API_KEYS) if Config.GOOGLE_API_KEYS else True
+    if all_gemini_exhausted:
+        raise RuntimeError("All Gemini keys permanently exhausted.")
+    return _clean_response(_try_gemini_pool(messages, model, temperature))
+
+
+def safe_groq_invoke(
+    messages: List[BaseMessage],
+    temperature: Optional[float] = None,
+) -> BaseMessage:
+    """Invoke Groq pool exclusively, raising error if all keys fail or none configured."""
+    _check_cancellation()
+    if not Config.GROQ_API_KEYS:
+        raise RuntimeError("No Groq API keys configured.")
+    all_groq_exhausted = all(_groq_exhausted.get(k) for k in Config.GROQ_API_KEYS)
+    if all_groq_exhausted:
+        raise RuntimeError("All Groq keys permanently exhausted.")
+    return _clean_response(_try_groq_pool(messages, temperature))

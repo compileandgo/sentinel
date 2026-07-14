@@ -4,6 +4,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from src.agent.state import AgentState, ChronEntry
 from src.tools.llm import safe_llm_invoke
 from src.agent.prompts import TIMELINE_EXTRACT_USER
+from src.config import Config
 
 def timeline_compiler_node(state: AgentState) -> Dict:
     print(f"\n [TimelineCompiler] Extracting dated events...")
@@ -12,6 +13,32 @@ def timeline_compiler_node(state: AgentState) -> Dict:
     for record in state["raw_intel"]:
         if record.get("snippet"):
             snippets.append(f"[{record.get('published_date','?')}] {record['snippet'][:200]}")
+
+    if Config.ENABLE_GDELT:
+        print("  [TimelineCompiler] GDELT grounding enabled. Fetching events...")
+        from src.tools.search import gdelt_search
+        
+        def clean_gdelt_date(date_str: str) -> str:
+            if not date_str:
+                return "?"
+            date_str = date_str.strip()
+            if "T" in date_str:
+                part = date_str.split("T")[0]
+                if "-" in part:
+                    return part
+                if len(part) == 8 and part.isdigit():
+                    return f"{part[:4]}-{part[4:6]}-{part[6:]}"
+            return date_str
+
+        gdelt_articles = gdelt_search(state["topic"], max_results=10)
+        print(f"  [TimelineCompiler] Retrieved {len(gdelt_articles)} articles from GDELT.")
+        for art in gdelt_articles:
+            title = art.get("title", "")
+            seendate = art.get("seendate", "")
+            url = art.get("url", "")
+            cleaned_date = clean_gdelt_date(seendate)
+            if title:
+                snippets.append(f"[{cleaned_date}] GDELT Event: {title} (Source: {url})")
 
     if not snippets:
         print("  No snippets to process.")
