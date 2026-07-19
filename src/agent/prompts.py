@@ -9,7 +9,9 @@ LEAD_RESEARCHER_SYSTEM = (
 )
 
 LEAD_RESEARCHER_PLAN_USER = (
-    "Decompose the following geopolitical topic into {max_subagents} focused, non-overlapping subagent tasks. "
+    "Decompose the following research topic into {max_subagents} focused, non-overlapping subagent tasks.\n\n"
+    "Topic Classification: This topic belongs to the {domain} domain. "
+    "When planning the research decomposition, you MUST integrate these specific angles: {recommended_angles}.\n\n"
     "Respond ONLY with a JSON array of objects, where each object has these keys:\n"
     "- \"subagent_id\": a short unique string identifier (e.g. \"timeline\", \"actor_positions\", \"impact\")\n"
     "- \"task\": a detailed task instruction containing: objective, search guidance, and explicit boundaries\n\n"
@@ -54,17 +56,19 @@ SUBAGENT_DECISION_USER = (
 )
 
 SUBAGENT_REPORT_USER = (
-    "You have finished researching. Write a structured markdown report for your findings on:\n"
+    "You have finished researching. Write a highly detailed, structured Fact Sheet markdown report for your findings on:\n"
     "Task: {task}\n"
     "Main Topic: {topic}\n\n"
     "Here are the search results you gathered:\n{intel_summary}\n\n"
     "Format your markdown report exactly with these headings:\n"
     "# Research Report: {subagent_id}\n"
-    "## Summary\n(A concise 3-4 sentence overview of findings)\n"
-    "## Key Facts\n(Bullet points of confirmed facts)\n"
-    "## Dates Extracted\n(Explicit dates and associated events)\n"
-    "## Source List\n(URLs and titles of sources used)\n"
-    "## Open Questions\n(Any gaps you couldn't resolve)\n"
+    "## Summary\n(A concise 3-4 sentence overview of findings)\n\n"
+    "## Confirmed Facts\n(List each key fact with its claim, supporting source URL, and direct quote or paraphrase)\n\n"
+    "## Quantitative Data Points\n(List all numbers, percentages, dates, or technical metrics with their source URL)\n\n"
+    "## Named Entities\n(List key organizations, people, laws, treaties, or geographical places mentioned)\n\n"
+    "## Source Conflicts\n(Detail any instances where sources disagree or contradict each other)\n\n"
+    "## Source List\n(URLs and titles of sources used)\n\n"
+    "## Evidence Gaps & Open Questions\n(Any gaps you couldn't resolve or questions that remain unanswered)\n"
 )
 
 # --- Cross Examiner Bias Tagging ---
@@ -152,7 +156,14 @@ SYNTHESIS_SYSTEM = (
     "   hierarchy would genuinely aid understanding, embed a Mermaid diagram using a fenced code block "
     "   with the language identifier 'mermaid'. Use graph TD for hierarchies and flows, sequenceDiagram "
     "   for timelines, and mindmap for actor/concept maps. Keep diagrams focused and legible — no more "
-    "   than 12 nodes. Do NOT insert diagrams for purely decorative purposes."
+    "   than 12 nodes. Do NOT insert diagrams for purely decorative purposes.\n"
+    "12. STRICT GROUNDING: Ground every single factual claim strictly in the provided search snippets, timeline, and "
+    "   subagent findings. Do not write claims or speculate on topics that have no supporting evidence. "
+    "   Every sentence must be traceable to the provided intelligence.\n"
+    "13. SOURCE ANALYTICS & BIAS DE-WEIGHTING: Actively analyze the provided Source Bias Context. "
+    "   De-weight or discount claims supported only by low-reliability sources. If a claim is supported "
+    "   by a source with a known political lean, cross-reference it with other sources or note the potential bias "
+    "   analytically in the brief's prose (e.g. 'Reports from [source] indicate X, though these sources are assessed as having Y lean')."
 )
 
 SYNTHESIS_USER = (
@@ -168,8 +179,10 @@ SYNTHESIS_USER = (
     "  or similar meta-quality columns in any table.\n"
     "- Use numbered or bulleted lists where appropriate for chronological phases, causal chains, or ranked frameworks.\n"
     "- Do NOT include inline citations — the citation agent will add these.\n"
-    "- Distinguish CONFIRMED facts from SPECULATIVE or PROJECTED assessments in prose using words like 'estimated', 'projected', 'assessed as'.\n\n"
+    "- Distinguish CONFIRMED facts from SPECULATIVE or PROJECTED assessments in prose using words like 'estimated', 'projected', 'assessed as'.\n"
+    "- STRICT GROUNDING: You must strictly ground your report in the provided documents and subagent findings. Do not add general background knowledge that is not mentioned in the inputs.\n\n"
     "Topic: {topic}\n\n"
+    "## Subagent Findings & Reports\n{subagent_findings_md}\n\n"
     "## Timeline of Events\n{timeline_md}\n\n"
     "## Source Bias Context\n{bias_md}\n\n"
     "## Raw Intelligence\n{intel_md}\n\n"
@@ -177,6 +190,71 @@ SYNTHESIS_USER = (
     "Follow with dynamically structured H2 and H3 sections appropriate to the topic. "
     "Integrate contextual tables within sections. End with a substantive synthesis or conclusion section."
 )
+
+# --- Sectional Synthesis Prompts ---
+SYNTHESIS_OUTLINE_SYSTEM = (
+    "You are a senior intelligence analyst designing the comprehensive outline of a classified strategic intelligence brief.\n"
+    "Your goal is to divide the research topic into 5 to 8 detailed, highly specialized, and non-overlapping sections.\n"
+    "You must analyze the research findings, timeline, and raw intelligence to customize the sections specifically to the topic's domain (e.g., geopolitical, scientific, historical, economic, etc.).\n\n"
+    "Return ONLY a JSON object with this schema:\n"
+    "{{\n"
+    "  \"title\": \"Comprehensive research brief title\",\n"
+    "  \"sections\": [\n"
+    "    {{\n"
+    "      \"id\": 1,\n"
+    "      \"heading\": \"The exact heading name (Do NOT use generic names like 'Introduction' or 'Executive Summary')\",\n"
+    "      \"is_introduction\": true,\n"
+    "      \"description\": \"Detailed guidelines on what factual claims, timeline events, and subagent findings this section should cover.\",\n"
+    "      \"subsections\": [\n"
+    "        {{\n"
+    "          \"heading\": \"H3 subsection heading\",\n"
+    "          \"description\": \"Specific sub-topic instructions\"\n"
+    "        }}\n"
+    "      ]\n"
+    "    }}\n"
+    "  ]\n"
+    "}}"
+)
+
+SYNTHESIS_OUTLINE_USER = (
+    "Create a custom, high-density intelligence brief outline for the topic below based on the gathered findings, events, and raw intelligence.\n\n"
+    "Topic: {topic}\n\n"
+    "## Subagent Findings & Reports\n{subagent_findings_md}\n\n"
+    "## Timeline of Events\n{timeline_md}\n\n"
+    "## Raw Intelligence\n{intel_md}"
+)
+
+SYNTHESIS_SECTION_SYSTEM = (
+    "You are a senior intelligence analyst writing one specific section of a classified strategic intelligence brief.\n"
+    "Your briefs are modelled on the highest standards of professional, multi-disciplinary research.\n\n"
+    "WRITING STANDARDS — You MUST meet ALL of the following:\n"
+    "1. DATA DENSITY: Every paragraph must contain high-density facts, numbers, dates, statistics, percentages, or technical parameters. Avoid vague, high-level summaries.\n"
+    "2. NAMED ACTORS: Always name specific entities (organizations, companies, ministers, historical figures, treaties, geographic locations, institutions, laws, etc.).\n"
+    "3. DOMAIN DEPTH: If technical/scientific: precise specifications. If economic: currencies, market volumes, growth rates.\n"
+    "4. NO FLUFF: Open the section and every paragraph with a concrete data point, specific event, or factual claim.\n"
+    "5. CONTEXTUAL TABLES: If this section covers comparisons, actor maps, metrics, timelines, or structured data, you MUST include a detailed markdown table within the text. Do NOT add meta-quality columns like 'Source Confidence' or 'Reliability'.\n"
+    "6. MATH & CONSTRAINTS: Where relevant (such as engineering limits, physical laws, or chemical parameters), write out mathematical definitions or LaTeX formatting.\n"
+    "7. STRICT GROUNDING: Ground every single claim strictly in the provided search snippets, timeline, and subagent findings. Do not write claims or speculate on topics that have no supporting evidence.\n"
+    "8. SOURCE ANALYTICS & BIAS DE-WEIGHTING: De-weight or discount claims supported only by low-reliability sources.\n"
+    "9. OUTPUT FORMAT: Output ONLY the markdown text of the section (starting with the H2 heading for normal sections, or starting with the H1 title and intro for the introduction section). Do NOT include conversational preambles, intros, or outros."
+)
+
+SYNTHESIS_SECTION_USER = (
+    "Write Section {section_id} (\"{section_heading}\") for the intelligence brief on: {topic}\n\n"
+    "Below is the full outline of the brief to ensure you know the context of other sections:\n"
+    "{full_outline_md}\n\n"
+    "Use the guidelines for this specific section:\n"
+    "- Section Heading: {section_heading}\n"
+    "- Description: {section_description}\n"
+    "- Subsections to include:\n"
+    "{subsections_md}\n\n"
+    "## Subagent Findings & Reports\n{subagent_findings_md}\n\n"
+    "## Timeline of Events\n{timeline_md}\n\n"
+    "## Source Bias Context\n{bias_md}\n\n"
+    "## Raw Intelligence\n{intel_md}\n\n"
+    "Write the section text now. Ground it strictly in the sources. No introductory conversational filler. Output raw markdown."
+)
+
 
 # --- Citation Agent ---
 CITATION_SYSTEM = (

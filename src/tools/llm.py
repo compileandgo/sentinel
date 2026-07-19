@@ -24,10 +24,13 @@ def _is_overload_error(msg: str) -> bool:
 
 
 def _is_permanent_quota(msg: str) -> bool:
-    """Permanent (billing/daily quota) vs transient (per-minute RPM) error."""
-    transient = any(k in msg for k in ("per minute", "rpm", "tpm"))
-    permanent = any(k in msg for k in ("resource_exhausted", "quota", "credit", "billing"))
-    return permanent and not transient
+    """Permanent (billing/daily quota, invalid key) vs transient (per-minute RPM) error."""
+    permanent_indicators = (
+        "daily quota", "daily limit", "quota exceeded", "quota_exceeded", 
+        "credit", "billing", "blocked", "key not valid", "api_key_invalid", 
+        "invalid api key", "invalid key", "not authorized", "forbidden"
+    )
+    return any(k in msg for k in permanent_indicators)
 
 
 def _parse_retry_wait(err_msg: str, default: float = 3.0) -> float:
@@ -58,8 +61,24 @@ def _invoke_with_retry(llm_client, messages, name: str = "LLM", max_attempts: in
 
 
 def _clean_response(res):
-    if res and hasattr(res, "content") and isinstance(res.content, str):
-        res.content = re.sub(r" {50,}", " ", res.content)
+    if not res:
+        return res
+    if hasattr(res, "content"):
+        content = res.content
+        if isinstance(content, list):
+            text_parts = []
+            for part in content:
+                if isinstance(part, str):
+                    text_parts.append(part)
+                elif isinstance(part, dict) and "text" in part:
+                    text_parts.append(part["text"])
+            res.content = "".join(text_parts)
+        elif not isinstance(content, str):
+            res.content = str(content)
+        
+        # Clean up double spacing / extra white spaces if applicable
+        if isinstance(res.content, str):
+            res.content = re.sub(r" {50,}", " ", res.content)
     return res
 
 
@@ -84,6 +103,7 @@ def make_llm(model: Optional[str] = None, temperature: Optional[float] = None) -
                 model=model or Config.LLM_MODEL,
                 temperature=temperature if temperature is not None else Config.LLM_TEMPERATURE,
                 google_api_key=key,
+                timeout=60.0,
             )
     # All exhausted — return first key anyway (will fail gracefully)
     key = Config.GOOGLE_API_KEYS[0] if Config.GOOGLE_API_KEYS else os.getenv("GOOGLE_API_KEY", "")
@@ -91,13 +111,18 @@ def make_llm(model: Optional[str] = None, temperature: Optional[float] = None) -
         model=model or Config.LLM_MODEL,
         temperature=temperature if temperature is not None else Config.LLM_TEMPERATURE,
         google_api_key=key,
+        timeout=60.0,
     )
 
 
 def _try_gemini_pool(messages, model, temperature):
-    keys = Config.GOOGLE_API_KEYS
+    import random
+    keys = Config.GOOGLE_API_KEYS.copy()
     if not keys:
         raise RuntimeError("no gemini API keys configured.")
+    
+    # Shuffle keys to distribute parallel requests across keys and avoid RPM rate limits
+    random.shuffle(keys)
 
     last_err = None
     primary_model = model or Config.LLM_MODEL
@@ -114,6 +139,7 @@ def _try_gemini_pool(messages, model, temperature):
                     model=attempt_model,
                     temperature=temperature if temperature is not None else Config.LLM_TEMPERATURE,
                     google_api_key=key,
+                    timeout=60.0,
                 )
                 result = _invoke_with_retry(llm, messages, name=f"Gemini[{attempt_model}...{key[-6:]}]")
                 if attempt_model != primary_model:
@@ -136,9 +162,13 @@ def _try_gemini_pool(messages, model, temperature):
 
 def _try_groq_pool(messages, temperature):
     """Try each Groq key in order, skipping permanently exhausted ones."""
-    keys = Config.GROQ_API_KEYS
+    import random
+    keys = Config.GROQ_API_KEYS.copy()
     if not keys:
         raise RuntimeError("No Groq API keys configured.")
+    
+    # Shuffle keys to load-balance parallel requests
+    random.shuffle(keys)
 
     last_err = None
     for key in keys:
@@ -151,6 +181,7 @@ def _try_groq_pool(messages, temperature):
                 model=Config.GROQ_MODEL,
                 temperature=temperature if temperature is not None else Config.LLM_TEMPERATURE,
                 groq_api_key=key,
+                timeout=60.0,
             )
             result = _invoke_with_retry(llm, messages, name=f"Groq[...{key[-6:]}]")
             return result

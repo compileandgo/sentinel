@@ -35,6 +35,23 @@ def route_after_eval(state: AgentState) -> str:
     return "synthesis"
 
 
+def route_after_citation(state: AgentState) -> str:
+    """
+    Conditional edge router from citation agent.
+    If the citation agent triggered a continue status due to high uncited ratio
+    and we haven't hit the cap, loop back to lead_researcher.
+    Otherwise terminate.
+    """
+    from src.config import Config
+    eval_res = state.get("eval_result")
+    if eval_res and eval_res.get("status") == "continue":
+        current_iter = state.get("iterations", 0)
+        if current_iter < Config.MAX_RESEARCH_ITERATIONS:
+            print(f"   [Routing] High uncited ratio detected ({state.get('uncited_ratio', 0.0):.1%})! Routing back to LeadResearcher for verification.")
+            return "lead_researcher"
+    return "end"
+
+
 def build_graph():
     builder = StateGraph(AgentState)
 
@@ -81,6 +98,15 @@ def build_graph():
 
     # Brief formulation and citation generation
     builder.add_edge("synthesis", "citation_agent")
-    builder.add_edge("citation_agent", END)
+    
+    # Conditional route after citation agent (quality gate check)
+    builder.add_conditional_edges(
+        "citation_agent",
+        route_after_citation,
+        {
+            "lead_researcher": "lead_researcher",
+            "end": END
+        }
+    )
 
     return builder.compile()

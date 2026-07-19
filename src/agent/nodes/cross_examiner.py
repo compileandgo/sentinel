@@ -121,32 +121,38 @@ def cross_examiner_node(state: AgentState) -> Dict:
         do_cross_model = Config.ENABLE_CROSS_MODEL_BIAS and bool(Config.GROQ_API_KEYS)
 
         if do_cross_model:
-            print(f"  [CrossExaminer] Cross-model bias check enabled. Querying both Gemini and Groq...")
-            # Query Gemini
-            try:
-                res_gemini = safe_gemini_invoke([HumanMessage(content=batch_prompt)])
-                raw_gemini = res_gemini.content.strip().replace("```json", "").replace("```", "")
-                parsed_gemini = json.loads(raw_gemini)
-                if isinstance(parsed_gemini, list):
-                    for item in parsed_gemini:
-                        dom = item.get("domain", "")
-                        if dom:
-                            gemini_dict[dom] = item
-            except Exception as e:
-                print(f"  ⚠️ [CrossExaminer] Gemini classification failed: {e}")
+            print(f"  [CrossExaminer] Cross-model bias check enabled. Querying both Gemini and Groq in parallel...")
+            from concurrent.futures import ThreadPoolExecutor
 
-            # Query Groq
-            try:
-                res_groq = safe_groq_invoke([HumanMessage(content=batch_prompt)])
-                raw_groq = res_groq.content.strip().replace("```json", "").replace("```", "")
-                parsed_groq = json.loads(raw_groq)
-                if isinstance(parsed_groq, list):
-                    for item in parsed_groq:
-                        dom = item.get("domain", "")
-                        if dom:
-                            groq_dict[dom] = item
-            except Exception as e:
-                print(f"  ⚠️ [CrossExaminer] Groq classification failed: {e}")
+            def run_gemini():
+                try:
+                    res_gemini = safe_gemini_invoke([HumanMessage(content=batch_prompt)])
+                    raw_gemini = res_gemini.content.strip().replace("```json", "").replace("```", "")
+                    parsed_gemini = json.loads(raw_gemini)
+                    if isinstance(parsed_gemini, list):
+                        for item in parsed_gemini:
+                            dom = item.get("domain", "")
+                            if dom:
+                                gemini_dict[dom] = item
+                except Exception as e:
+                    print(f"  ⚠️ [CrossExaminer] Gemini classification failed: {e}")
+
+            def run_groq():
+                try:
+                    res_groq = safe_groq_invoke([HumanMessage(content=batch_prompt)])
+                    raw_groq = res_groq.content.strip().replace("```json", "").replace("```", "")
+                    parsed_groq = json.loads(raw_groq)
+                    if isinstance(parsed_groq, list):
+                        for item in parsed_groq:
+                            dom = item.get("domain", "")
+                            if dom:
+                                groq_dict[dom] = item
+                except Exception as e:
+                    print(f"  ⚠️ [CrossExaminer] Groq classification failed: {e}")
+
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                executor.submit(run_gemini)
+                executor.submit(run_groq)
         else:
             # Standard single-model fallback call
             print(f"  [CrossExaminer] Batch classifying {len(unknown_domains)} domains via standard LLM...")

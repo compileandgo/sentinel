@@ -36,7 +36,7 @@
             securityLevel: 'loose'
         });
     </script>
-    <link rel="stylesheet" href="style.css?v=22">
+    <link rel="stylesheet" href="style.css?v=23">
 </head>
 <body>
     <div class="app-container hidden">
@@ -92,26 +92,37 @@
                     </svg>
                     <span>Images</span>
                 </button>
-                <button class="nav-btn" id="library-btn">
+                <button class="nav-btn" id="recents-nav-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span>Recents</span>
+                </button>
+                <button class="nav-btn" id="researches-nav-btn">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
                         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
                     </svg>
-                    <span>Library</span>
+                    <span>Researches</span>
                 </button>
             </div>
 
             <!-- Scrollable Past Briefs / History List Wrapper with Gradients -->
             <div class="sidebar-recent-wrapper">
                 <div class="recent-top-gradient"></div>
+                
                 <div class="sidebar-section recent-section">
                     <div class="section-header">
-                        <span class="section-title">Recent</span>
+                        <span class="section-title">Recents</span>
                     </div>
                     <div id="recent-briefs-list" class="recent-list">
                         <div class="recent-item loading">Loading history...</div>
                     </div>
                 </div>
+
+
+                
                 <div class="recent-bottom-gradient"></div>
             </div>
 
@@ -176,17 +187,96 @@
                 </div>
             </div>
 
-            <!-- Chat message streams -->
-            <div id="chat-messages" class="chat-messages">
+            <!-- Chat Discussion Card (Main Chat Area taking full height) -->
+            <div class="chat-discussion-card" id="chat-discussion-card">
+                <!-- Discussion Header (visible only when report is active) -->
+                <div class="discussion-header" id="discussion-header">
+                    <span class="discussion-header-title">Discussion</span>
+                    <button class="icon-btn" id="discussion-new-chat-btn" title="New Chat">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Chat message streams -->
+                <div id="chat-messages" class="chat-messages">
+                    <!-- Discussion Empty State (visible when chat history has no follow-ups) -->
+                    <div class="discussion-empty-state hidden" id="discussion-empty-state">
+                        <div class="empty-folder-container">
+                            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M54 48C54 50.2 52.2 52 50 52H14C11.8 52 10 50.2 10 48V20C10 17.8 11.8 16 14 16H24L30 22H50C52.2 22 54 23.8 54 26V48Z" fill="#e5484d"/>
+                                <g transform="translate(26, 30) scale(0.5)">
+                                    <ellipse cx="12" cy="12" rx="13.51" ry="6.14" transform="translate(-4.97 12) rotate(-45)" stroke="#ffffff" stroke-width="3" fill="none"></ellipse>
+                                    <ellipse cx="12" cy="12" rx="6.14" ry="13.51" transform="translate(-4.97 12) rotate(-45)" stroke="#ffffff" stroke-width="3" fill="none"></ellipse>
+                                    <circle cx="12" cy="12" r="1.5" fill="#ffffff"></circle>
+                                </g>
+                            </svg>
+                        </div>
+                        <div class="empty-state-text">Ask anything about the report and the data that drives it</div>
+                    </div>
                 <!-- Idle Welcome/Loading screen -->
                 <div id="idle-welcome" class="welcome-screen">
                     <div class="welcome-spinner hidden" id="welcome-plan-spinner">
                         <div class="pulse-ring"></div>
                         <span class="pulse-text">Generating research plan...</span>
                     </div>
-                    <div class="welcome-text" style="text-align: center;">
-                        <h2 style="font-size: 24px; font-weight: 500; margin-bottom: 12px;">Research anything with Sentinel</h2>
-                        <p style="color: var(--text-muted); font-size: 14px;">Sentinel synthesizes no-bluff intelligence briefs with complete data and citations.</p>
+                    
+                    <div class="welcome-header">
+                        <div class="welcome-logo-row">
+                            <svg class="welcome-logo" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg">
+                                <ellipse cx="12" cy="12" rx="13.51" ry="6.14" transform="translate(-4.97 12) rotate(-45)"></ellipse>
+                                <ellipse cx="12" cy="12" rx="6.14" ry="13.51" transform="translate(-4.97 12) rotate(-45)"></ellipse>
+                                <circle cx="12" cy="12" r="0.95"></circle>
+                            </svg>
+                            <span class="welcome-brand-name">Sentinel</span>
+                        </div>
+                        <h2 class="welcome-greeting" id="welcome-greeting">Good Evening, Explorer.</h2>
+                        <h1 class="welcome-question">What are we exploring today?</h1>
+                    </div>
+
+                    <div class="landing-cards-grid">
+                        <div class="landing-card" data-prompt="Summarize the methodology used in the paper 'Exploring the Use of Technology in Elementary School Classrooms'">
+                            <div class="landing-card-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                </svg>
+                            </div>
+                            <div class="landing-card-text">
+                                <strong>Summarize the methodology</strong> used in the paper "Exploring the Use of Technology in Elementary School Classrooms"
+                            </div>
+                        </div>
+
+                        <div class="landing-card" data-prompt="Generate an APA citation for the article 'The Role of Digital Tools in Improving Learning Outcomes in Primary Education'?">
+                            <div class="landing-card-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                    <path d="M8 10h.01"></path>
+                                    <path d="M12 10h.01"></path>
+                                    <path d="M16 10h.01"></path>
+                                </svg>
+                            </div>
+                            <div class="landing-card-text">
+                                <strong>Generate an APA citation</strong> for the article "The Role of Digital Tools in Improving Learning Outcomes in Primary Education"?
+                            </div>
+                        </div>
+
+                        <div class="landing-card" data-prompt="Research report based on the findings of 'The Effect of Digital Tools on Learning Performance in Primary Education'">
+                            <div class="landing-card-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="9" y1="3" x2="9" y2="21"></line>
+                                    <line x1="15" y1="3" x2="15" y2="21"></line>
+                                </svg>
+                            </div>
+                            <div class="landing-card-text">
+                                <strong>Research report</strong> based on the findings of "The Effect of Digital Tools on Learning Performance in Primary Education"
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -334,7 +424,7 @@
                                     <line x1="2" y1="12" x2="22" y2="12"></line>
                                     <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
                                 </svg>
-                                <span>Deep Research</span>
+                                <span id="deep-research-text">Deep Research</span>
                             </button>
                             
                             <!-- Model select dropdown -->
@@ -346,7 +436,7 @@
                             </div>
                             
                             <!-- Microphone icon -->
-                            <button type="button" class="icon-btn" title="Voice input">
+                            <button type="button" class="icon-btn" id="mic-btn" title="Voice input">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
                                     <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
@@ -374,7 +464,11 @@
                 </form>
                 <span class="disclaimer-text">Sentinel can make mistakes. Verify important info.</span>
             </div>
-        </main>
+        </div>
+    </main>
+
+    <!-- Resizer Slider -->
+    <div class="pane-resizer" id="pane-resizer"></div>
 
         <!-- 3. Research Viewer Side Panel (Right) -->
         <aside id="research-viewer" class="research-viewer collapsed">
@@ -581,6 +675,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=22"></script>
+    <script src="app.js?v=23"></script>
 </body>
 </html>

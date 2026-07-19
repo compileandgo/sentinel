@@ -23,6 +23,66 @@ def write_plan(run_id: str, topic: str, backlog: List[str]) -> str:
     return plan_path
 
 
+def classify_topic_domain(topic: str) -> str:
+    """
+    Classifies the topic into one of: 'GEOPOLITICAL', 'ECONOMIC', 'SCIENTIFIC'.
+    Uses local keyword matching, fallback to LLM.
+    """
+    topic_lower = topic.lower()
+    
+    # Keyword signals
+    geopolitical_signals = [
+        "sanction", "policy", "election", "crisis", "geopolitical", "geopolitics", 
+        "nato", "military conflict", "export control", "treaty", "accord", "protest", 
+        "minister", "government", "war", "tariff", "trade war", "diplomatic", "bilateral"
+    ]
+    economic_signals = [
+        "economic", "finance", "market", "trade", "currency", "inflation", "tariff",
+        "export", "import", "gdp", "growth rate", "invest", "fiscal", "supply chain", "pricing"
+    ]
+    scientific_signals = [
+        "agentic", "neural network", "machine learning", "deep learning", "llm", 
+        "software architecture", "algorithm", "ancient history", "dynasty", 
+        "empirical study", "methodology", "framework", "tutorial", "how-to",
+        "scientific", "physics", "chemistry", "biology", "space", "quantum", "cancer"
+    ]
+    
+    if any(sig in topic_lower for sig in geopolitical_signals):
+        print(f"  [LeadResearcher] Geopolitical keyword detected: domain set to GEOPOLITICAL.")
+        return "GEOPOLITICAL"
+    if any(sig in topic_lower for sig in economic_signals):
+        print(f"  [LeadResearcher] Economic keyword detected: domain set to ECONOMIC.")
+        return "ECONOMIC"
+    if any(sig in topic_lower for sig in scientific_signals):
+        print(f"  [LeadResearcher] Tech/Academic keyword detected: domain set to SCIENTIFIC.")
+        return "SCIENTIFIC"
+        
+    # Fallback to LLM classification
+    prompt = (
+        "Classify the following research topic into one of three domains:\n"
+        "1. 'GEOPOLITICAL' (if it concerns government, policy, international relations, military, treaties, or conflicts)\n"
+        "2. 'ECONOMIC' (if it concerns market data, trade volumes, finance, investments, growth, or fiscal policies)\n"
+        "3. 'SCIENTIFIC' (if it concerns science, engineering, technology, academic studies, history, or algorithms)\n\n"
+        f"Topic: {topic}\n\n"
+        "Respond with ONLY one word: either GEOPOLITICAL, ECONOMIC, or SCIENTIFIC. Do not include any other text."
+    )
+    try:
+        res = safe_llm_invoke([HumanMessage(content=prompt)], temperature=0.0)
+        ans = res.content.strip().upper()
+        if "GEOPOLITICAL" in ans:
+            print(f"  [LeadResearcher] LLM classified topic as GEOPOLITICAL.")
+            return "GEOPOLITICAL"
+        elif "ECONOMIC" in ans:
+            print(f"  [LeadResearcher] LLM classified topic as ECONOMIC.")
+            return "ECONOMIC"
+        else:
+            print(f"  [LeadResearcher] LLM classified topic as SCIENTIFIC.")
+            return "SCIENTIFIC"
+    except Exception as e:
+        print(f"  [LeadResearcher] Topic classification LLM call failed ({e}). Defaulting to GEOPOLITICAL.")
+        return "GEOPOLITICAL"
+
+
 def lead_researcher_node(state: AgentState) -> Dict:
     topic = state["topic"]
     run_id = state["run_id"]
@@ -33,12 +93,25 @@ def lead_researcher_node(state: AgentState) -> Dict:
     backlog = state.get("research_backlog", [])
     plan_path = state.get("plan_path", "")
 
+    # Define recommended angles mapping for each domain
+    domain_angles = {
+        "GEOPOLITICAL": "actors, timeline, sanctions, responses",
+        "ECONOMIC": "market data, policy, forecasts, risks",
+        "SCIENTIFIC": "methodology, findings, limitations, applications"
+    }
+
     # --- Iteration 1: Plan and decompose topic ---
     if current_iter == 1:
-        print(f"  Planning research angles for: {topic}")
+        domain = classify_topic_domain(topic)
+        is_news = (domain in ["GEOPOLITICAL", "ECONOMIC"])
+        recommended_angles = domain_angles.get(domain, "timeline, key aspects, implications")
+        
+        print(f"  Planning research angles for: {topic} in domain: {domain}")
         prompt = LEAD_RESEARCHER_PLAN_USER.format(
             max_subagents=Config.MAX_SUBAGENTS,
-            topic=topic
+            topic=topic,
+            domain=domain,
+            recommended_angles=recommended_angles
         )
         try:
             res = safe_llm_invoke([
@@ -52,11 +125,24 @@ def lead_researcher_node(state: AgentState) -> Dict:
         except Exception as e:
             print(f"  Failed to parse planner LLM output: {e} — falling back to static tasks")
             # Fallback static task decomposition
-            tasks_data = [
-                {"subagent_id": "timeline", "task": f"Analyze chronological developments and key events of {topic}."},
-                {"subagent_id": "actors", "task": f"Identify key national/international actor positions and official statements on {topic}."},
-                {"subagent_id": "implications", "task": f"Examine geopolitical implications and future trends of {topic}."}
-            ]
+            if domain == "GEOPOLITICAL":
+                tasks_data = [
+                    {"subagent_id": "timeline", "task": f"Analyze chronological developments and key events of {topic}."},
+                    {"subagent_id": "actors", "task": f"Identify key national/international actor positions and official statements on {topic}."},
+                    {"subagent_id": "implications", "task": f"Examine geopolitical implications and future trends of {topic}."}
+                ]
+            elif domain == "ECONOMIC":
+                tasks_data = [
+                    {"subagent_id": "market_data", "task": f"Compile market size, economic volumes, and financial data of {topic}."},
+                    {"subagent_id": "policy_risks", "task": f"Examine regulatory frameworks, policies, and systemic risks of {topic}."},
+                    {"subagent_id": "forecasts", "task": f"Analyze market growth projections, forecasts, and opportunities of {topic}."}
+                ]
+            else:
+                tasks_data = [
+                    {"subagent_id": "methodology", "task": f"Review methodology, design, and experimental protocols of {topic}."},
+                    {"subagent_id": "findings", "task": f"Synthesize primary research findings, breakthrough achievements, and results of {topic}."},
+                    {"subagent_id": "limitations", "task": f"Investigate structural limitations, criticism, and unresolved research gaps of {topic}."}
+                ]
 
         # Limit to max subagents
         tasks_data = tasks_data[:Config.MAX_SUBAGENTS]
@@ -71,13 +157,14 @@ def lead_researcher_node(state: AgentState) -> Dict:
                 subagent_id=subagent_id,
                 topic=topic,
                 task=t["task"],
-                output_path=output_path
+                output_path=output_path,
+                enable_rss=is_news
             ))
             print(f"    - Spawn task: [{subagent_id}] {str(t['task'])[:60]}...")
 
-
     # --- Iteration > 1: Review feedback and refine ---
     else:
+        is_news = state.get("is_news_topic", True)
         # Refine backlog with evaluator feedback
         eval_result = state.get("eval_result")
         unresolved_questions = []
@@ -130,14 +217,15 @@ def lead_researcher_node(state: AgentState) -> Dict:
                 subagent_id=subagent_id,
                 topic=topic,
                 task=t["task"],
-                output_path=output_path
+                output_path=output_path,
+                enable_rss=is_news
             ))
             print(f"    - Refined task: [{subagent_id}] {str(t['task'])[:60]}...")
-
 
     return {
         "iterations": current_iter,
         "research_backlog": backlog,
         "plan_path": plan_path,
         "subagent_tasks": subagent_tasks,
+        "is_news_topic": is_news,
     }

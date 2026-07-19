@@ -32,6 +32,7 @@ def main():
         "chronology": [],
         "iterations": 0,
         "eval_result": None,
+        "uncited_ratio": None,
         "synthesis": "",
         "final_report": "",
     }

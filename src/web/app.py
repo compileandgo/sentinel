@@ -141,6 +141,7 @@ def run_agent_in_thread(run_id: str, chat_id: str, topic: str, max_iterations: i
         "chronology": [],
         "iterations": 0,
         "eval_result": None,
+        "uncited_ratio": None,
         "synthesis": "",
         "final_report": "",
     }
@@ -891,8 +892,8 @@ def _build_system_prompt() -> str:
         "DIAGRAMS: If the user asks you to draw, visualize, or diagram something, produce a Mermaid "
         "diagram inside a fenced code block with the language identifier 'mermaid'. "
         "Use graph TD for flows and hierarchies, sequenceDiagram for timelines, and mindmap for "
-        "concept/actor maps. Keep diagrams under 12 nodes. Only use diagrams when explicitly requested "
-        "or when a diagram clearly adds more value than prose."
+        "concept/actor maps. Keep diagrams under 12 nodes."
+        "add a diagram when it clearly adds more value than prose."
     )
 
 async def _resolve_chat_context(req: "ChatRequest", user: AuthenticatedUser):

@@ -13,6 +13,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const activeChatContent = document.getElementById("active-chat-content");
     const userQueryBubble = document.getElementById("user-query-bubble");
 
+    // Modern Vercel design system components
+    const chatReportCard = document.getElementById("chat-report-card") || document.getElementById("chat-discussion-card");
+    const reportStatusText = document.getElementById("report-status-text");
+    const discussionDownloadBtn = document.getElementById("discussion-download-btn");
+    const chatDiscussionCard = document.getElementById("chat-discussion-card");
+    const discussionHeader = document.getElementById("discussion-header");
+    const discussionFullscreenBtn = document.getElementById("discussion-fullscreen-btn");
+    const discussionEmptyState = document.getElementById("discussion-empty-state");
+
     // Plan card
     const planTitle = document.getElementById("plan-title");
     const planBullets = document.getElementById("plan-bullets");
@@ -45,6 +54,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const sidebarElement = document.querySelector(".sidebar");
     const settingsBtn = document.getElementById("settings-btn");
     const tryAdvancedBtn = document.getElementById("try-advanced-btn");
+    const recentsNavBtn = document.getElementById("recents-nav-btn");
+    const researchesNavBtn = document.getElementById("researches-nav-btn");
 
     // Search view elements
     const searchView = document.getElementById("search-view");
@@ -831,10 +842,70 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    const discussionNewChatBtn = document.getElementById("discussion-new-chat-btn");
+    if (discussionNewChatBtn) {
+        discussionNewChatBtn.addEventListener("click", () => {
+            newResearchNav.click();
+        });
+    }
+
+    // ── Resizer Slider ────────────────────────────────────────────────────────
+    const resizer = document.getElementById("pane-resizer");
+    if (resizer) {
+        let isDragging = false;
+        resizer.addEventListener("mousedown", (e) => {
+            isDragging = true;
+            resizer.classList.add("dragging");
+            document.body.style.cursor = "col-resize";
+            document.body.style.userSelect = "none";
+        });
+
+        document.addEventListener("mousemove", (e) => {
+            if (!isDragging) return;
+            const container = document.querySelector(".app-container");
+            if (!container) return;
+            const containerWidth = container.getBoundingClientRect().width;
+            
+            // Calculate width from the right side of the screen
+            const newWidth = containerWidth - e.clientX - 21;
+            
+            const minDiscussion = 300;
+            const isSidebarCollapsed = sidebarElement && sidebarElement.classList.contains("collapsed");
+            const sidebarWidth = isSidebarCollapsed ? 68 : 280;
+            const maxDiscussion = containerWidth - sidebarWidth - 300;
+
+            if (newWidth >= minDiscussion && newWidth <= maxDiscussion) {
+                container.style.setProperty("--discussion-width", `${newWidth}px`);
+            }
+        });
+
+        document.addEventListener("mouseup", () => {
+            if (isDragging) {
+                isDragging = false;
+                resizer.classList.remove("dragging");
+                document.body.style.cursor = "";
+                document.body.style.userSelect = "";
+            }
+        });
+
+        resizer.addEventListener("dblclick", () => {
+            const container = document.querySelector(".app-container");
+            if (container) {
+                container.style.setProperty("--discussion-width", "400px");
+            }
+        });
+    }
+
     // ── Sidebar Nav Buttons Click Handler ──────────────────────────────────────
     const navButtons = document.querySelectorAll(".sidebar-nav .nav-btn");
     navButtons.forEach(btn => {
         btn.addEventListener("click", () => {
+            if (btn.id === "recents-nav-btn" || btn.id === "researches-nav-btn") {
+                if (sidebarElement) {
+                    sidebarElement.classList.remove("collapsed");
+                }
+                return;
+            }
             if (window.innerWidth <= 768 && sidebarElement) {
                 sidebarElement.classList.add("collapsed");
             }
@@ -1476,7 +1547,33 @@ document.addEventListener("DOMContentLoaded", () => {
     // ── Close viewer ──────────────────────────────────────────────────────────
     closeViewerBtn.addEventListener("click", () => {
         researchViewer.classList.add("collapsed");
+        if (topicInput) topicInput.placeholder = "Ask Sentinel to research...";
+        updateDiscussionPlaceholder();
     });
+
+    if (discussionFullscreenBtn) {
+        discussionFullscreenBtn.addEventListener("click", () => {
+            chatDiscussionCard.classList.toggle("fullscreen-discussion");
+        });
+    }
+
+    if (discussionDownloadBtn) {
+        discussionDownloadBtn.addEventListener("click", () => {
+            const md = currentReportMarkdown || reportContent.textContent;
+            if (!md) {
+                showToast("No Report Available", "Generate a report first before downloading.");
+                return;
+            }
+            const blob = new Blob([md], { type: "text/markdown" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `${(currentTopic || "sentinel-brief").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-report.md`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast("Exported to Markdown", "Markdown report downloaded successfully.");
+        });
+    }
 
     // Dropdown DOM refs
     const exportBtn = document.getElementById("export-dropdown-btn");
@@ -1937,6 +2034,30 @@ document.addEventListener("DOMContentLoaded", () => {
     // Helpers
     // ═══════════════════════════════════════════════════════════════════════════
 
+    function updateDiscussionPlaceholder() {
+        if (!discussionEmptyState) return;
+        if (researchViewer.classList.contains("collapsed")) {
+            discussionEmptyState.classList.add("hidden");
+            return;
+        }
+        const messages = idleWelcome.querySelectorAll(".message");
+        let hasFollowUps = false;
+        if (messages.length > 2) {
+            hasFollowUps = true;
+        }
+        if (!hasFollowUps) {
+            discussionEmptyState.classList.remove("hidden");
+            messages.forEach(msg => {
+                msg.classList.add("hidden-in-discussion");
+            });
+        } else {
+            discussionEmptyState.classList.add("hidden");
+            messages.forEach(msg => {
+                msg.classList.remove("hidden-in-discussion");
+            });
+        }
+    }
+
     function openViewer(title) {
         viewerTitle.textContent = title;
         thinkingSkeleton.classList.remove("hidden");
@@ -1953,6 +2074,20 @@ document.addEventListener("DOMContentLoaded", () => {
             if (arrow) arrow.style.transform = "rotate(180deg)";
         }
         researchViewer.classList.remove("collapsed");
+
+        if (topicInput) topicInput.placeholder = "Ask anything...";
+        if (reportStatusText) {
+            if (currentReportMarkdown) {
+                reportStatusText.textContent = "Report Ready";
+                const dot = chatReportCard.querySelector(".status-dot");
+                if (dot) dot.classList.remove("pulsing");
+            } else {
+                reportStatusText.textContent = "Generating Report";
+                const dot = chatReportCard.querySelector(".status-dot");
+                if (dot) dot.classList.add("pulsing");
+            }
+        }
+        updateDiscussionPlaceholder();
     }
 
     function closeSSE() {
@@ -2034,6 +2169,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
         chatMessages.scrollTop = chatMessages.scrollHeight;
+        updateDiscussionPlaceholder();
         return div;
     }
 
@@ -2218,6 +2354,32 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    function updateWelcomeGreeting() {
+        const greetingEl = document.getElementById("welcome-greeting");
+        if (!greetingEl) return;
+        
+        let username = "Explorer";
+        if (session) {
+            const email = session.user.email;
+            const metadata = session.user.user_metadata || {};
+            const rawName = metadata.username || email;
+            username = rawName.split("@")[0];
+            if (username && username.length > 0) {
+                username = username.charAt(0).toUpperCase() + username.slice(1);
+            }
+        }
+        
+        const hour = new Date().getHours();
+        let greeting = "Good Evening";
+        if (hour < 12) {
+            greeting = "Good Morning";
+        } else if (hour < 18) {
+            greeting = "Good Afternoon";
+        }
+        
+        greetingEl.textContent = `${greeting}, ${username}.`;
+    }
+
     function resetState(clearLocalStorage = true) {
         closeSearchView();
         closeSSE();
@@ -2235,13 +2397,70 @@ document.addEventListener("DOMContentLoaded", () => {
             localStorage.removeItem(activeChatKey);
         }
 
-        // Reset chat area
+        // Reset chat area with premium Vercel suggestion cards
         idleWelcome.className = "welcome-screen";
         idleWelcome.innerHTML = `
-            <div class="welcome-text" style="text-align:center">
-                <h2 style="font-size:24px;font-weight:500;margin-bottom:12px">Research anything with Sentinel</h2>
-                <p style="color:var(--text-muted);font-size:14px">Sentinel synthesizes no-bluff intelligence briefs with complete data and citations.</p>
+            <div class="welcome-spinner hidden" id="welcome-plan-spinner">
+                <div class="pulse-ring"></div>
+                <span class="pulse-text">Generating research plan...</span>
+            </div>
+            
+            <div class="welcome-header">
+                <div class="welcome-logo-row">
+                    <svg class="welcome-logo" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg">
+                        <ellipse cx="12" cy="12" rx="13.51" ry="6.14" transform="translate(-4.97 12) rotate(-45)"></ellipse>
+                        <ellipse cx="12" cy="12" rx="6.14" ry="13.51" transform="translate(-4.97 12) rotate(-45)"></ellipse>
+                        <circle cx="12" cy="12" r="0.95"></circle>
+                    </svg>
+                    <span class="welcome-brand-name">sentinel</span>
+                </div>
+                <h2 class="welcome-greeting" id="welcome-greeting">Good Evening, Explorer.</h2>
+                <h1 class="welcome-question">What are we exploring today?</h1>
+            </div>
+
+            <div class="landing-cards-grid">
+                <div class="landing-card" data-prompt="Summarize the methodology used in the paper 'Exploring the Use of Technology in Elementary School Classrooms'">
+                    <div class="landing-card-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                        </svg>
+                    </div>
+                    <div class="landing-card-text">
+                        <strong>Summarize the methodology</strong> used in the paper "Exploring the Use of Technology in Elementary School Classrooms"
+                    </div>
+                </div>
+
+                <div class="landing-card" data-prompt="Generate an APA citation for the article 'The Role of Digital Tools in Improving Learning Outcomes in Primary Education'?">
+                    <div class="landing-card-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            <path d="M8 10h.01"></path>
+                            <path d="M12 10h.01"></path>
+                            <path d="M16 10h.01"></path>
+                        </svg>
+                    </div>
+                    <div class="landing-card-text">
+                        <strong>Generate an APA citation</strong> for the article "The Role of Digital Tools in Improving Learning Outcomes in Primary Education"?
+                    </div>
+                </div>
+
+                <div class="landing-card" data-prompt="Research report based on the findings of 'The Effect of Digital Tools on Learning Performance in Primary Education'">
+                    <div class="landing-card-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="9" y1="3" x2="9" y2="21"></line>
+                            <line x1="15" y1="3" x2="15" y2="21"></line>
+                        </svg>
+                    </div>
+                    <div class="landing-card-text">
+                        <strong>Research report</strong> based on the findings of "The Effect of Digital Tools on Learning Performance in Primary Education"
+                    </div>
+                </div>
             </div>`;
+        
         activeChatContent.classList.add("hidden");
         userQueryBubble.textContent = "";
 
@@ -2281,6 +2500,25 @@ document.addEventListener("DOMContentLoaded", () => {
         if (rt) rt.textContent = "Ready in a few mins";
         planBullets.innerHTML = "";
         bulletsMoreBtn.classList.add("hidden");
+
+        // Setup dynamic welcome greeting and suggestion cards listeners
+        updateWelcomeGreeting();
+        const cards = idleWelcome.querySelectorAll(".landing-card");
+        cards.forEach(card => {
+            card.addEventListener("click", () => {
+                const promptText = card.getAttribute("data-prompt");
+                if (topicInput) {
+                    topicInput.value = promptText;
+                    topicInput.style.height = "auto";
+                    topicInput.style.height = topicInput.scrollHeight + "px";
+                    // Dispatch form submit
+                    researchForm.dispatchEvent(new Event("submit"));
+                }
+            });
+        });
+
+        if (topicInput) topicInput.placeholder = "Ask Sentinel to research...";
+        updateDiscussionPlaceholder();
     }
 
     // ── Brief history ─────────────────────────────────────────────────────────
@@ -2313,91 +2551,97 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             if (!briefs.length && !activeRunId) {
-                recentBriefsList.innerHTML = `<div class="recent-item loading">No briefs yet</div>`;
-                return briefs;
+                recentBriefsList.innerHTML = `<div class="recent-item loading">No chats yet</div>`;
+            } else {
+                briefs.forEach(b => {
+                    const item = createHistoryItemElement(b);
+                    recentBriefsList.appendChild(item);
+                });
             }
-            briefs.forEach(b => {
-                const item = document.createElement("div");
-                item.className = "recent-item";
-                if (currentBriefFilename === b.filename) {
-                    item.classList.add("active");
-                }
-                item.dataset.filename = b.filename;
-                item.title = `${b.title} · ${b.date}`;
 
-                item.innerHTML = `
-                    <span class="recent-item-title">${escHtml(b.title)}</span>
-                    <div class="recent-options-wrapper">
-                        <button class="recent-options-btn" title="Options">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <circle cx="12" cy="12" r="1.5"></circle>
-                                <circle cx="12" cy="5" r="1.5"></circle>
-                                <circle cx="12" cy="19" r="1.5"></circle>
-                            </svg>
-                        </button>
-                        <div class="recent-options-menu hidden">
-                            <div class="recent-options-item rename-opt">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                    <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                </svg>
-                                <span>Rename</span>
-                            </div>
-                            <div class="recent-options-item delete-opt">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                </svg>
-                                <span>Delete</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-                item.querySelector(".recent-item-title").onclick = (e) => {
-                    e.stopPropagation();
-                    loadBriefContent(b.filename);
-                };
-                item.onclick = () => loadBriefContent(b.filename);
-
-                const optBtn = item.querySelector(".recent-options-btn");
-                const optMenu = item.querySelector(".recent-options-menu");
-
-                optBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    document.querySelectorAll(".recent-options-menu").forEach(m => {
-                        if (m !== optMenu) m.classList.add("hidden");
-                    });
-                    document.querySelectorAll(".recent-options-btn").forEach(btn => {
-                        if (btn !== optBtn) btn.classList.remove("active");
-                    });
-                    optMenu.classList.toggle("hidden");
-                    optBtn.classList.toggle("active");
-                };
-
-                const renameOpt = item.querySelector(".rename-opt");
-                renameOpt.onclick = (e) => {
-                    e.stopPropagation();
-                    optMenu.classList.add("hidden");
-                    optBtn.classList.remove("active");
-                    openRenameModal(b.filename, b.title);
-                };
-
-                const deleteOpt = item.querySelector(".delete-opt");
-                deleteOpt.onclick = (e) => {
-                    e.stopPropagation();
-                    optMenu.classList.add("hidden");
-                    optBtn.classList.remove("active");
-                    openDeleteModal(b.filename, b.title);
-                };
-
-                recentBriefsList.appendChild(item);
-            });
             return briefs;
         } catch {
             recentBriefsList.innerHTML = `<div class="recent-item loading">Failed to load</div>`;
             return [];
         }
+    }
+
+    function createHistoryItemElement(b) {
+        const item = document.createElement("div");
+        item.className = "recent-item";
+        if (currentBriefFilename === b.filename) {
+            item.classList.add("active");
+        }
+        item.dataset.filename = b.filename;
+        item.title = `${b.title} · ${b.date}`;
+
+        item.innerHTML = `
+            <span class="recent-item-title">${escHtml(b.title)}</span>
+            <div class="recent-options-wrapper">
+                <button class="recent-options-btn" title="Options">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <circle cx="12" cy="12" r="1.5"></circle>
+                        <circle cx="12" cy="5" r="1.5"></circle>
+                        <circle cx="12" cy="19" r="1.5"></circle>
+                    </svg>
+                </button>
+                <div class="recent-options-menu hidden">
+                    <div class="recent-options-item rename-opt">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        <span>Rename</span>
+                    </div>
+                    <div class="recent-options-item delete-opt">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                        <span>Delete</span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        item.querySelector(".recent-item-title").onclick = (e) => {
+            e.stopPropagation();
+            loadBriefContent(b.filename);
+        };
+        item.onclick = () => loadBriefContent(b.filename);
+
+        const optBtn = item.querySelector(".recent-options-btn");
+        const optMenu = item.querySelector(".recent-options-menu");
+
+        optBtn.onclick = (e) => {
+            e.stopPropagation();
+            document.querySelectorAll(".recent-options-menu").forEach(m => {
+                if (m !== optMenu) m.classList.add("hidden");
+            });
+            document.querySelectorAll(".recent-options-btn").forEach(btn => {
+                if (btn !== optBtn) btn.classList.remove("active");
+            });
+            optMenu.classList.toggle("hidden");
+            optBtn.classList.toggle("active");
+        };
+
+        const renameOpt = item.querySelector(".rename-opt");
+        renameOpt.onclick = (e) => {
+            e.stopPropagation();
+            optMenu.classList.add("hidden");
+            optBtn.classList.remove("active");
+            openRenameModal(b.filename, b.title);
+        };
+
+        const deleteOpt = item.querySelector(".delete-opt");
+        deleteOpt.onclick = (e) => {
+            e.stopPropagation();
+            optMenu.classList.add("hidden");
+            optBtn.classList.remove("active");
+            openDeleteModal(b.filename, b.title);
+        };
+
+        return item;
     }
 
     function setupAssistantMessageActions(messageDiv, textContent) {
@@ -2800,6 +3044,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Auto-scroll chat to bottom
             chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            updateDiscussionPlaceholder();
 
         } catch (err) {
             alert(`Could not load brief: ${err.message}`);

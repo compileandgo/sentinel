@@ -33,20 +33,59 @@ def citation_agent_node(state: AgentState) -> Dict:
         return {"final_report": synthesis}
 
     sources_list_str = "\n".join(sources_list_lines)
-    prompt = CITATION_USER.format(
-        sources_list=sources_list_str,
-        synthesis=synthesis
-    )
+    parts = re.split(r'\n##\s+', synthesis)
 
-    try:
-        res = safe_llm_invoke([
-            SystemMessage(content=CITATION_SYSTEM),
-            HumanMessage(content=prompt),
-        ], temperature=0.1)
-        annotated_brief = res.content
-    except Exception as e:
-        print(f"  Citation matching LLM call failed: {e}. Appending standard list.")
-        annotated_brief = synthesis
+    if len(parts) > 1:
+        # Parallel sectional citation alignment
+        from concurrent.futures import ThreadPoolExecutor
+
+        def _align_section_citations(section_index: int, title: str, body: str) -> str:
+            print(f"  [CitationAgent] Aligning section {section_index} ({title[:40]}...)...")
+            prompt = CITATION_USER.format(
+                sources_list=sources_list_str,
+                synthesis=body
+            )
+            try:
+                res = safe_llm_invoke([
+                    SystemMessage(content=CITATION_SYSTEM),
+                    HumanMessage(content=prompt),
+                ], temperature=0.1)
+                return res.content
+            except Exception as e:
+                print(f"  ⚠️ [CitationAgent] Section {section_index} alignment failed: {e}")
+                return body
+
+        futures = []
+        with ThreadPoolExecutor(max_workers=min(len(parts) - 1, 8)) as executor:
+            for idx, part in enumerate(parts[1:], 1):
+                lines = part.split('\n', 1)
+                title = lines[0].strip()
+                body = lines[1] if len(lines) > 1 else ""
+                
+                future = executor.submit(_align_section_citations, idx, title, body)
+                futures.append((title, future))
+
+        annotated_parts = [parts[0]]
+        for title, future in futures:
+            annotated_body = future.result()
+            annotated_parts.append(f"\n## {title}\n{annotated_body}")
+        
+        annotated_brief = "".join(annotated_parts)
+    else:
+        # Fallback to monolithic alignment if no sections found
+        prompt = CITATION_USER.format(
+            sources_list=sources_list_str,
+            synthesis=synthesis
+        )
+        try:
+            res = safe_llm_invoke([
+                SystemMessage(content=CITATION_SYSTEM),
+                HumanMessage(content=prompt),
+            ], temperature=0.1)
+            annotated_brief = res.content
+        except Exception as e:
+            print(f"  Citation matching LLM call failed: {e}. Appending standard list.")
+            annotated_brief = synthesis
 
     # Extract uncited sentences
     # Split by standard sentence delimiters (.!?) followed by spaces
@@ -83,13 +122,42 @@ def citation_agent_node(state: AgentState) -> Dict:
     date_slug = datetime.date.today().isoformat()
     output_path = Config.OUTPUT_DIR / f"{slug}-{date_slug}.md"
 
+    uncited_count = annotated_brief.count("[UNCITED]")
+    total_sentences = len(sentences)
+    uncited_ratio = uncited_count / max(total_sentences, 1)
+
     header = (
         f"# Intelligence Brief: {state['topic']}\n"
         f"**Generated:** {datetime.datetime.now().strftime('%Y-%m-%d %H:%M UTC')}  \n"
         f"**Run ID:** `{state['run_id']}`  \n"
         f"**Sources indexed:** {len(seen_urls)}  \n"
-        f"**Iterations:** {state.get('iterations', 0)}  \n\n---\n\n"
+        f"**Iterations:** {state.get('iterations', 0)}  \n"
+        f"**Uncited sentences:** {uncited_count} / {total_sentences} ({uncited_ratio:.1%})  \n\n---\n\n"
     )
+
+    return_data = {
+        "final_report": header + final_report,
+        "uncited_ratio": uncited_ratio
+    }
+
+    if uncited_ratio > 0.25:
+        print(f"  ⚠️ [CitationAgent] WARNING: High uncited ratio detected: {uncited_ratio:.1%} ({uncited_count} out of {total_sentences} sentences).")
+        current_iter = state.get("iterations", 0)
+        if current_iter < Config.MAX_RESEARCH_ITERATIONS:
+            # Trigger dynamic re-research by setting status to continue and listing top unresolved uncited claims as backlog
+            from src.agent.state import EvalResult
+            print(f"  [CitationAgent] Re-research trigger: setting eval_result status='continue' with {len(uncited_claims)} claims to verify.")
+            # Map claims to specific prompt queries or instructions for the subagent
+            unresolved = [f"Find credible sources and facts verifying: {claim}" for claim in uncited_claims[:3]]
+            eval_res = EvalResult(
+                status="continue",
+                confidence=0.5,
+                unresolved_questions=unresolved,
+                reasoning=f"High uncited claims ratio ({uncited_ratio:.1%}). Verified sources needed."
+            )
+            return_data["eval_result"] = eval_res
+    else:
+        print(f"  [CitationAgent] Report groundness check: {uncited_ratio:.1%} uncited sentences ({uncited_count} out of {total_sentences}).")
 
     try:
         output_path.write_text(header + final_report, encoding="utf-8")
@@ -97,4 +165,4 @@ def citation_agent_node(state: AgentState) -> Dict:
     except Exception as e:
         print(f"   Failed to save final brief to disk: {e}")
 
-    return {"final_report": header + final_report}
+    return return_data

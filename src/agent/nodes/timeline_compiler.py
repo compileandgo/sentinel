@@ -14,7 +14,7 @@ def timeline_compiler_node(state: AgentState) -> Dict:
         if record.get("snippet"):
             snippets.append(f"[{record.get('published_date','?')}] {record['snippet'][:200]}")
 
-    if Config.ENABLE_GDELT:
+    if Config.ENABLE_GDELT and state.get("is_news_topic", True):
         print("  [TimelineCompiler] GDELT grounding enabled. Fetching events...")
         from src.tools.search import gdelt_search
         

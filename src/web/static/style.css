@@ -3,12 +3,12 @@
 /* Stark OLED Gemini Deep Research CSS System */
 :root {
     --bg-black: #000000;
-    --bg-sidebar: #09090B;
+    --bg-sidebar: #131314;
     --bg-card: #131314;
     --bg-card-hover: #1E1E20;
-    --bg-panel: #0E0E10;
-    --border-main: #1A1A1A;
-    --border-card: #282A2D;
+    --bg-panel: #131314;
+    --border-main: #2a2a2a;
+    --border-card: #2a2a2a;
     
     --text-primary: #E3E3E3;
     --text-secondary: #C4C7C5;
@@ -26,10 +26,10 @@
 
 body.light-theme {
     --bg-black: #ffffff;
-    --bg-sidebar: #f4f4f5;
+    --bg-sidebar: #fafafa;
     --bg-card: #fafafa;
     --bg-card-hover: #f4f4f5;
-    --bg-panel: #f9f9fb;
+    --bg-panel: #fafafa;
     --border-main: #e4e4e7;
     --border-card: #e4e4e7;
     
@@ -133,11 +133,12 @@ body {
 }
 
 .sidebar.collapsed .sidebar-nav {
+    margin: auto 0;
     padding: 12px 0;
     align-items: center;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 16px;
 }
 
 .sidebar.collapsed .nav-btn {
@@ -152,8 +153,15 @@ body {
     display: none !important;
 }
 
+.sidebar:not(.collapsed) #recents-nav-btn,
+.sidebar:not(.collapsed) #researches-nav-btn {
+    display: none !important;
+}
+
+.sidebar.collapsed .sidebar-recent-wrapper,
 .sidebar.collapsed .sidebar-section,
 .sidebar.collapsed .recent-section,
+.sidebar.collapsed .researches-section,
 .sidebar.collapsed .new-notebook-btn {
     display: none !important;
 }
@@ -179,7 +187,6 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid var(--border-main);
     flex-shrink: 0;
 }
 
@@ -305,8 +312,12 @@ body {
 
 .nav-btn.active {
     background-color: var(--bg-card);
-    border: 1px solid var(--border-card);
+    /* border: 1px solid var(--border-card); */
     color: var(--text-primary);
+}
+
+#new-research-nav:hover {
+    background-color: var(--bg-card-hover);
 }
 
 .sidebar-recent-wrapper {
@@ -360,11 +371,11 @@ body {
 .recent-list {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
 }
 
 .recent-item {
-    padding: 8px 12px;
+    padding: 6px 12px;
     border-radius: 8px;
     font-size: 14px;
     color: var(--text-secondary);
@@ -377,10 +388,25 @@ body {
     position: relative;
 }
 
-.recent-item:hover,
-.recent-item.active {
-    background-color: var(--bg-card);
+.recent-item:hover {
+    background-color: var(--bg-card-hover) !important;
     color: var(--text-primary);
+}
+
+.recent-item.active {
+    background-color: var(--bg-card-hover) !important;
+    color: var(--text-primary);
+}
+
+.recent-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    bottom: 6px;
+    width: 3px;
+    background-color: var(--gemini-blue);
+    border-radius: 0 2px 2px 0;
 }
 
 .recent-item-title {
@@ -524,7 +550,7 @@ body {
     flex-direction: column;
     height: 100%;
     position: relative;
-    background-color: var(--bg-black);
+    background-color: var(--bg-app);
     min-width: 0;
 }
 
@@ -534,7 +560,7 @@ body {
     left: 0;
     right: 0;
     height: 45px;
-    background: linear-gradient(180deg, var(--bg-black) 0%, transparent 100%);
+    background: linear-gradient(180deg, var(--bg-app) 0%, transparent 100%);
     pointer-events: none;
     z-index: 10;
 }
@@ -745,7 +771,7 @@ body {
     color: var(--text-primary);
     font-family: var(--font-quicksand);
     font-weight: 500;
-    font-size: 17px;
+    font-size: 16px;
     line-height: 1.5;
 }
 
@@ -772,7 +798,7 @@ body {
 .message-text {
     font-family: var(--font-quicksand);
     font-weight: 500;
-    font-size: 17px;
+    font-size: 16px;
     line-height: 1.6;
     color: var(--text-primary);
 }
@@ -976,7 +1002,7 @@ body {
     left: 0;
     right: 0;
     padding: 0 40px 24px 40px;
-    background: linear-gradient(180deg, transparent 0%, var(--bg-black) 40%);
+    background: linear-gradient(180deg, transparent 0%, var(--bg-app) 40%);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1044,7 +1070,7 @@ body {
 }
 
 .badge-deep-research {
-    background-color: transparent;
+    background-color: var(--bg-card-hover);
     color: var(--text-muted);
     border: 1px solid var(--border-card);
     border-radius: 18px;
@@ -1077,7 +1103,7 @@ body {
 
 .dropdown-wrapper select {
     background-color: var(--bg-card-hover);
-    color: var(--text-primary);
+    color: var(--text-secondary);
     border: 1px solid var(--border-card);
     outline: none;
     border-radius: 12px;
@@ -1086,6 +1112,10 @@ body {
     font-weight: 500;
     font-family: var(--font-sans);
     cursor: pointer;
+}
+
+.dropdown-wrapper select:hover {
+    color: var(--text-primary);
 }
 
 body.light-theme .dropdown-wrapper select option {
@@ -1205,8 +1235,8 @@ body.light-theme .send-btn {
 }
 
 .viewer-header {
-    height: 60px;
-    min-height: 60px;
+    height: 52px;
+    min-height: 52px;
     padding: 0 20px;
     border-bottom: 1px solid var(--border-main);
     display: flex;
@@ -1216,7 +1246,7 @@ body.light-theme .send-btn {
 }
 
 .viewer-header h3 {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
     color: var(--text-primary);
     white-space: nowrap;
@@ -1277,6 +1307,12 @@ body.light-theme .send-btn {
 .create-btn:hover {
     background-color: #005cc5;
     box-shadow: 0 0 10px rgba(0, 112, 243, 0.3);
+}
+
+
+/* Resizer default state */
+.pane-resizer {
+    display: none;
 }
 
 /* Dropdown Menus */
@@ -1547,7 +1583,6 @@ body.light-theme .send-btn {
 
 /* Rendered Report Styles */
 .report-content {
-    border-top: 1px solid var(--border-main);
     padding-top: 24px;
     font-family: var(--font-quicksand);
     font-weight: 600;
@@ -3147,11 +3182,6 @@ button:disabled,
     text-anchor: middle !important;
 }
 
-/* Save dropdown menu animations and hover effects */
-.save-dropdown-menu.hidden {
-    display: none !important;
-}
-
 .save-dropdown-item {
     transition: background-color 0.15s ease, color 0.15s ease;
 }
@@ -3159,4 +3189,478 @@ button:disabled,
 .save-dropdown-item:hover {
     background-color: var(--bg-card-hover) !important;
     color: var(--text-primary) !important;
+}
+
+/* Vercel-inspired Welcome Screen Styles */
+.welcome-screen {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+    padding: 20px;
+}
+
+.welcome-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.welcome-logo-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.welcome-logo {
+    color: var(--gemini-blue); /* Premium Vercel red accent */
+}
+
+.welcome-brand-name {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    color: var(--text-primary);
+    text-transform: capitalize;
+}
+
+#plus-dropdown-btn, #mic-btn {
+    background: var(--bg-card-hover);
+    border: 1px solid var(--border-card);
+}
+
+.welcome-greeting {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.welcome-question {
+    font-size: 32px;
+    font-weight: 600;
+    letter-spacing: -1.2px;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+/* Landing Cards Grid */
+.landing-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.landing-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-main);
+    border-radius: 8px;
+    padding: 18px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.landing-card:hover {
+    background-color: var(--bg-card-hover);
+    border-color: var(--text-muted);
+    transform: translateY(-2px);
+}
+
+.landing-card-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background-color: rgba(78, 136, 245, 0.1);
+    color: var(--gemini-blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.landing-card-text {
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+.landing-card-text strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .landing-cards-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+}
+
+/* --- Modern Vercel design system updates & layout modifications --- */
+
+:root {
+    --bg-app: #09090B;
+}
+
+body.light-theme {
+    --bg-app: #f4f4f6;
+}
+
+/* Background dots grid on the app container */
+.app-container {
+    background-color: var(--bg-app) !important;
+    background-image: radial-gradient(var(--border-main) 1.5px, transparent 1.5px) !important;
+    background-size: 24px 24px !important;
+}
+
+/* Sidebar background adjustment */
+.sidebar {
+    background-color: var(--bg-sidebar) !important;
+    z-index: 100;
+}
+
+/* Integrated Discussion Header components */
+.discussion-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.discussion-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background-color: var(--bg-card-hover);
+    padding: 3px 8px;
+    border-radius: 12px;
+    border: 1px solid var(--border-main);
+}
+
+.discussion-status .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #10b981; /* Green ready state */
+    display: inline-block;
+}
+
+.discussion-status .status-dot.pulsing {
+    background-color: #ef4444; /* Pulsing red generating state */
+    animation: status-pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes status-pulse {
+    0% { opacity: 0.4; transform: scale(0.9); }
+    50% { opacity: 1; transform: scale(1.1); }
+    100% { opacity: 0.4; transform: scale(0.9); }
+}
+
+
+
+/* Discussion Wrapper card */
+.chat-discussion-card {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    height: 100%;
+    width: 100%;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    overflow: visible;
+}
+
+.discussion-header {
+    display: none !important;
+    height: 52px;
+    min-height: 52px;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border-main);
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    background-color: var(--bg-card);
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    flex-shrink: 0;
+}
+
+/* Discussion Empty State */
+.discussion-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 40px 24px;
+    margin: auto 0;
+    text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.empty-folder-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter: drop-shadow(0 4px 10px rgba(229, 72, 77, 0.15));
+}
+
+.empty-state-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+    max-width: 240px;
+    line-height: 1.5;
+}
+
+/* Hidden class for default messages in discussion panel */
+.hidden-in-discussion {
+    display: none !important;
+}
+
+/* Active split panel layouts (Desktop only) */
+@media (min-width: 769px) {
+
+    /* ── CSS Grid container ──────────────────────────────────────────
+       Column 1: sidebar (explicit px — 'auto' is unreliable in grid)
+       Column 2: research viewer (1fr fills remaining space)
+       Column 3: discussion panel (340px + 16px right padding gap)
+    ─────────────────────────────────────────────────────────────────── */
+    .app-container:has(#research-viewer:not(.collapsed)) {
+        display: grid !important;
+        /* sidebar open = 280px; 1fr = viewer; 400px = discussion */
+        grid-template-columns: var(--sidebar-width, 280px) 1fr var(--discussion-width, 400px) !important;
+        grid-template-rows: 100vh !important;
+        column-gap: 14px !important;
+        padding-right: 14px !important;
+        box-sizing: border-box !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        overflow: hidden !important;
+    }
+
+    /* When sidebar is collapsed, shrink its grid column to match */
+    .app-container:has(#research-viewer:not(.collapsed)):has(.sidebar.collapsed) {
+        grid-template-columns: var(--sidebar-width, 68px) 1fr var(--discussion-width, 400px) !important;
+    }
+
+    /* Sidebar → column 1, full viewport height, no border in split mode */
+    .app-container:has(#research-viewer:not(.collapsed)) .sidebar {
+        grid-column: 1 !important;
+        grid-row: 1 !important;
+        width: 100% !important;   /* fill the grid column exactly */
+        border-right: none !important;
+    }
+
+    /* Research viewer → column 2, 14px breathing room top/bottom */
+    .app-container:has(#research-viewer:not(.collapsed)) #research-viewer {
+        grid-column: 2 !important;
+        grid-row: 1 !important;
+        position: relative !important;
+        transform: none !important;
+        width: 100% !important;
+        max-width: none !important;   /* override base max-width: 50% */
+        min-width: 0 !important;      /* lets 1fr shrink correctly */
+        height: auto !important;
+        margin: 14px 0 !important;
+        background-color: var(--bg-card) !important;
+        border: 1px solid var(--border-main) !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+    }
+
+    /* Chat area → column 3, transparent flex wrapper */
+    .app-container:has(#research-viewer:not(.collapsed)) .chat-area {
+        grid-column: 3 !important;
+        grid-row: 1 !important;
+        background: transparent !important;
+        border: none !important;
+        padding: 14px 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        box-sizing: border-box !important;
+        min-height: 0 !important;
+    }
+
+    /* Discussion card fills the chat column */
+    .app-container:has(#research-viewer:not(.collapsed)) .chat-discussion-card {
+        flex: 1 1 0 !important;
+        min-height: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        background-color: var(--bg-card) !important;
+        border: 1px solid var(--border-main) !important;
+        border-radius: 12px !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+        overflow: hidden !important;
+    }
+
+    /* Hide black gradients in split mode */
+    .app-container:has(#research-viewer:not(.collapsed)) .chat-top-gradient,
+    .app-container:has(#research-viewer:not(.collapsed)) .input-container-outer > .chat-top-gradient {
+        display: none !important;
+    }
+
+    /* Show + style discussion header */
+    .app-container:has(#research-viewer:not(.collapsed)) .discussion-header {
+        display: flex !important;
+        height: 48px;
+        padding: 0 14px !important;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .discussion-header-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
+        letter-spacing: 0.01em;
+    }
+
+    /* Hide assistant message avatar in split mode */
+    .app-container:has(#research-viewer:not(.collapsed)) .assistant-message .avatar-star {
+        display: none !important;
+    }
+
+    /* Messages fill remaining flex space */
+    .app-container:has(#research-viewer:not(.collapsed)) #chat-messages {
+        border-radius: 0 !important;
+        background-color: transparent !important;
+        padding: 14px !important;
+        flex: 1 1 0 !important;
+        min-height: 0 !important;
+        height: auto !important;
+        overflow-y: auto !important;
+    }
+
+    .app-container:has(#research-viewer:not(.collapsed)) #chat-messages:has(#discussion-empty-state:not(.hidden)) #idle-welcome {
+        display: none !important;
+    }
+
+    /* Input bar: static, anchored at bottom of discussion card */
+    .app-container:has(#research-viewer:not(.collapsed)) .input-container-outer {
+        position: static !important;
+        border-top: 1px solid var(--border-main) !important;
+        background: var(--bg-card) !important;
+        padding: 12px 14px !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+        flex-shrink: 0 !important;
+        align-items: stretch !important;
+    }
+
+    .app-container:has(#research-viewer:not(.collapsed)) .input-card {
+        border: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+    }
+
+    /* Deep research button: icon-only in split mode */
+    .app-container:has(#research-viewer:not(.collapsed)) #deep-research-text {
+        display: none !important;
+    }
+
+    .app-container:has(#research-viewer:not(.collapsed)) #deep-research-btn {
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 50% !important;
+        padding: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        min-width: 32px !important;
+        gap: 0 !important;
+    }
+
+    .app-container:has(#research-viewer:not(.collapsed)) #deep-research-btn svg {
+        width: 16px !important;
+        height: 16px !important;
+    }
+
+    /* Keep Outline menu inside the report section */
+    .contents-dropdown-wrapper {
+        position: static !important;
+    }
+    .viewer-header {
+        position: relative !important;
+    }
+    .contents-menu {
+        position: absolute !important;
+        top: 50px !important;
+        right: 20px !important;
+        left: auto !important;
+        width: 520px !important;
+        max-width: calc(100% - 40px) !important;
+        z-index: 150 !important;
+    }
+
+    /* Pane Resizer Handle Styling */
+    .pane-resizer {
+        display: none !important;
+        position: absolute;
+        width: 8px;
+        top: 14px;
+        bottom: 14px;
+        cursor: col-resize;
+        z-index: 1000;
+        right: calc(var(--discussion-width, 400px) + 17px);
+        background-color: transparent;
+        transition: background-color 0.2s;
+        border-radius: 4px;
+    }
+
+    .app-container:has(#research-viewer:not(.collapsed)) .pane-resizer {
+        display: block !important;
+    }
+
+    .pane-resizer::after {
+        content: '';
+        position: absolute;
+        left: 3px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background-color: var(--border-main);
+        transition: background-color 0.2s;
+    }
+
+    .pane-resizer:hover::after,
+    .pane-resizer.dragging::after {
+        background-color: var(--gemini-blue);
+        width: 4px;
+        left: 2px;
+        box-shadow: 0 0 8px rgba(0, 112, 243, 0.4);
+    }
+}
+
+/* Hide top gradient when report is open */
+.app-container:has(#research-viewer:not(.collapsed)) .chat-top-gradient {
+    display: none !important;
 }

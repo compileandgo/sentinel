@@ -9,6 +9,7 @@ class RawIntel(TypedDict):
     published_date: str   # ISO date string or "" if unknown
     query: str   # the search query that produced this result
     subagent_id: str   # "lead" in MVP; subagent ID in parallel arch
+    full_text: Optional[str]  # full-text article body (extracted via trafilatura) if fetched
 
 class BiasEntry(TypedDict):
     """One source bias classification. Produced by CrossExaminer."""
@@ -40,12 +41,14 @@ class SubagentTask(TypedDict):
     topic: str
     task: str
     output_path: str
+    enable_rss: bool
 
 class AgentState(TypedDict):
     # Core
     topic: str
     run_id: str
     plan_path: str             # path to plan.md written at start of run
+    is_news_topic: bool        # classified topic domain (geopolitical/news vs academic/tech)
 
     # Research tracking
     research_backlog: List[str]              # open questions still needing evidence
@@ -60,6 +63,7 @@ class AgentState(TypedDict):
     # Loop control
     iterations: int
     eval_result: Optional[EvalResult]
+    uncited_ratio: Optional[float]
 
     # Output
     synthesis: str

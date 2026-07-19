@@ -32,15 +32,18 @@ def _build_intel_brief_summary(intel_list: List[RawIntel]) -> str:
 
 
 def _build_intel_full_summary(intel_list: List[RawIntel]) -> str:
-    """Helper to stringify search results with full snippets for compiling the final report."""
+    """Helper to stringify search results with full snippets or body texts for compiling the final report."""
     if not intel_list:
         return "No search results gathered yet."
     summary_lines = []
     for i, r in enumerate(intel_list, 1):
+        text_content = r.get("full_text") or r.get("snippet", "")
+        if text_content:
+            text_content = text_content[:4000] # Cap per source to avoid token blowup
         summary_lines.append(
             f"Source [{i}]: {r.get('title', 'Untitled')}\n"
             f"URL: {r.get('source_url', '')}\n"
-            f"Snippet: {r.get('snippet', '')}\n"
+            f"Content: {text_content}\n"
             f"Published: {r.get('published_date', '')}\n"
             f"Query: {r.get('query', '')}\n"
             f"---"
@@ -101,7 +104,19 @@ def subagent_node(task: SubagentTask) -> Dict:
                 break
             
             print(f"   [Subagent:{subagent_id}] (Call {calls_made+1}/{max_calls}) Searching: '{query}'")
-            results = search(query, subagent_id=subagent_id, max_results=3)
+            results = search(query, subagent_id=subagent_id, max_results=3, enable_rss=task.get("enable_rss", True))
+            
+            # Fetch full text for the retrieved search results
+            from src.tools.fetch import fetch_article
+            for r in results:
+                url = r.get("source_url")
+                if url:
+                    print(f"   [Subagent:{subagent_id}] Fetching full text for {url[:60]}...")
+                    body = fetch_article(url)
+                    r["full_text"] = body if body else None
+                else:
+                    r["full_text"] = None
+
             local_intel.extend(results)
             print(f"     → Found {len(results)} results ({reasoning[:50]}...)")
             calls_made += 1
