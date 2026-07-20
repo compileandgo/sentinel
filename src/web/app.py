@@ -703,6 +703,10 @@ async def rename_brief(filename: str, req: RenameRequest, user: AuthenticatedUse
                 lines[i] = f"# Intelligence Brief: {new_title}"
                 title_updated = True
                 break
+            elif line.startswith("# Research Paper:"):
+                lines[i] = f"# Research Paper: {new_title}"
+                title_updated = True
+                break
         
         if not title_updated and lines:
             if lines[0].startswith("# "):
@@ -973,6 +977,8 @@ async def _save_qa_to_db(
             for line in context.splitlines()[:5]:
                 if line.startswith("# Intelligence Brief:"):
                     title = line.replace("# Intelligence Brief:", "").strip()
+                elif line.startswith("# Research Paper:"):
+                    title = line.replace("# Research Paper:", "").strip()
             chat_history.append({"role": "user", "content": title})
             date_str = ""
             for line in context.splitlines()[:5]:

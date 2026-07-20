@@ -102,8 +102,8 @@ def citation_agent_node(state: AgentState) -> Dict:
             if claim:
                 uncited_claims.append(claim)
 
-    # Build the final markdown sources section
-    sources_md = "\n\n## Sources\n"
+    # Build the final markdown references section in research paper format
+    sources_md = "\n\n## References\n"
     for i, url in enumerate(seen_urls, 1):
         title = url
         date = ""
@@ -113,8 +113,8 @@ def citation_agent_node(state: AgentState) -> Dict:
                 title = r.get("title", url)
                 date = r.get("published_date", "")
                 break
-        date_str = f" — {date}" if date else ""
-        sources_md += f"{i}. [{title}]({url}){date_str}\n"
+        date_str = f" ({date})." if date else "."
+        sources_md += f"{i}. {title}. URL: [{url}]({url}){date_str}\n"
 
     # Clean [UNCITED] tags and normalize spacing for final output
     clean_brief = annotated_brief.replace("[UNCITED]", "")
@@ -142,7 +142,7 @@ def citation_agent_node(state: AgentState) -> Dict:
         duration_str = "unknown"
 
     header = (
-        f"# Intelligence Brief: {state['topic']}\n"
+        f"# Research Paper: {state['topic']}\n"
         f"**Generated:** {datetime.datetime.now().strftime('%Y-%m-%d %H:%M UTC')}  \n"
         f"**Time taken:** {duration_str}  \n"
         f"**Sources indexed:** {len(seen_urls)}  \n"
