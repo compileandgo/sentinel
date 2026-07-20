@@ -115,7 +115,12 @@ def citation_agent_node(state: AgentState) -> Dict:
         date_str = f" — {date}" if date else ""
         sources_md += f"{i}. [{title}]({url}){date_str}\n"
 
-    final_report = annotated_brief + sources_md
+    # Clean [UNCITED] tags and normalize spacing for final output
+    clean_brief = annotated_brief.replace("[UNCITED]", "")
+    clean_brief = re.sub(r'\s+([.,!?])', r'\1', clean_brief)
+    clean_brief = re.sub(r' {2,}', ' ', clean_brief)
+
+    final_report = clean_brief + sources_md
 
     # Write report to disk
     slug = state["topic"][:50].lower().replace(" ", "-").replace("/", "-")
