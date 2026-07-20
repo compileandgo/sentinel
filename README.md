@@ -1,129 +1,76 @@
-# Sentinel - Autonomous Geopolitical Intelligence Agent
+# Sentinel - Multi-Agent Intelligence Synthesis System
 
-Sentinel is a multi-agent, bias-aware research and analysis system designed for political and geopolitical intelligence collation. Built on LangGraph, it implements an orchestrator-parallel-subagent pattern to plan, coordinate, execute, and synthesize deep-dive research runs.
-
-The backend is written in FastAPI, integrated with Supabase for data persistence and authentication. The frontend is a dark-mode chat interface, featuring hardware-accelerated transitions and responsive layout toggles optimized for mobile and desktop screens.
+Sentinel is an analytical research pipeline designed to compile structured, bias-evaluated geopolitical intelligence briefs. The system implements a parallel-subagent architecture built on LangGraph to automate resource gathering, cross-examine domain bias, and synthesize long-form, fact-grounded reports.
 
 ---
 
 ## 1. System Architecture
 
-Sentinel uses a decoupled orchestrator-parallel-subagent architecture to handle complex geopolitical topics.
+Sentinel uses a stateful Graph orchestrator to coordinate parallel research subagents, compile factual timelines, evaluate research sufficiency, and synthesize final annotated reports.
 
-```
-                    ┌───────────────────────────────────┐
-                    │        User Research Topic        │
-                    └─────────────────┬─────────────────┘
-                                      │
-                                      ▼
-                    ┌───────────────────────────────────┐
-           ┌───────▶│       LeadResearcher Node         │◀──────────────────┐
-           │        │  - Validates query & scope        │                   │
-           │        │  - Generates parallel task specs  │                   │
-           │        │  - Persists plan to disk          │                   │
-           │        └──────┬──────┬──────┬──────────────┘                   │
-           │               │      │      │ (Parallel fan-out)               │
-           │               ▼      ▼      ▼                                  │
-           │   ┌───────────┐ ┌───────────┐ ┌───────────┐                    │
-           │   │ Subagent 1│ │ Subagent 2│ │ Subagent N│                    │
-           │   │ - Search  │ │ - Search  │ │ - Search  │                    │
-           │   │ - Eval    │ │ - Eval    │ │ - Eval    │                    │
-           │   │ - Disk Art│ │ - Disk Art│ │ - Disk Art│                    │
-           │   └─────┬─────┘ └─────┬─────┘ └─────┬─────┘                    │
-           │         │             │             │                          │
-           │         └─────────────┼─────────────┘                          │
-           │                       │ (Lightweight file paths)               │
-           │                       ▼                                        │
-           │        ┌──────────────────────────────┐                        │
-           │        │       Cross-Examiner         │                        │
-           │        │  - Checks static bias rules  │                        │
-           │        │  - Generates bias_matrix     │                        │
-           │        └──────────────┬───────────────┘                        │
-           │                       │                                        │
-           │                       ▼                                        │
-           │        ┌──────────────────────────────┐                        │
-           │        │      Timeline Compiler       │                        │
-           │        │  - Extracts event records    │                        │
-           │        │  - Highlights chronological  │                        │
-           │        │    conflict flags            │                        │
-           │        └──────────────┬───────────────┘                        │
-           │                       │                                        │
-           │                       ▼                                        │
-           │        ┌──────────────────────────────┐                        │
-           │        │    Sufficiency Evaluator     │──── (Needs Refinement) ┘
-           │        └──────────────┬───────────────┘
-           │                       │ (Target Confidence Met)
-           │                       ▼
-           │        ┌──────────────────────────────┐
-           │        │       Synthesis Engine       │
-           │        │  - Weights source credibility│
-           │        │  - Compiles balanced prose   │
-           │        └──────────────┬───────────────┘
-           │                       │
-           │                       ▼
-           │        ┌──────────────────────────────┐
-           └────────│        Citation Agent        │
-                    │  - Matches claims to URLs    │
-                    │  - Injects attribution       │
-                    └──────────────┬───────────────┘
-                                   │
-                                   ▼
-                    ┌──────────────────────────────┐
-                    │  Structured Markdown Brief   │
-                    └──────────────────────────────┘
+```mermaid
+graph TD
+    User([User Research Topic]) --> Lead[Lead Researcher Node]
+    Lead -->|Parallel Dispatch| Sub1[Subagent 1]
+    Lead -->|Parallel Dispatch| Sub2[Subagent 2]
+    Lead -->|Parallel Dispatch| SubN[Subagent N]
+    Sub1 & Sub2 & SubN -->|Write Fact Sheets to Disk| Cross[Cross-Examiner Node]
+    Cross -->|Map Domain Bias & Reliability| Chron[Timeline Compiler Node]
+    Chron -->|Extract & Deduplicate Chronology| Eval{Sufficiency Evaluator}
+    Eval -->|Gaps Found: Re-plan Tasks| Lead
+    Eval -->|Confidence Met / Target Cap| Synth[Synthesis Engine]
+    Synth -->|Draft Structured Sections| Cit[Citation Agent]
+    Cit -->|Ground Claims & Inject URL Citations| Out([Final Markdown Brief])
 ```
 
-### Component Nodes
+### Pipeline Components
 
-* **LeadResearcher (Orchestrator):** Manages the execution flow. Generates specific task sub-queries and limits execution to target scope budgets.
-* **Subagents (Parallel Workers):** Executed in parallel using LangGraph's dynamic `Send` mapping. Each subagent runs an iterative search-evaluate-refine loop, writes findings to `output/subagents/{run_id}/`, and returns local file references.
-* **Cross-Examiner:** Maps source domains against static credibility metadata (`data/bias_ratings.json`) and runs LLM-based bias classification, compiling a structured `bias_matrix`.
-* **Timeline Compiler:** Extracts structured dates and deduplicates chronologies. Resolves historical and event sequence mismatches.
-* **Sufficiency Evaluator:** Inspects gathered intelligence against a predefined evaluation rubric. Determines whether to loop back for further research or trigger final synthesis.
-* **Synthesis Engine:** Aggregates findings and compiles the intelligence brief, neutral-prose assessments, and position summaries.
-* **Citation Agent:** Injects inline anchors and sources, mapping sentences to original retrieval URLs, and tags uncorroborated assertions.
+* **Lead Researcher (Orchestrator):** Analyzes the root topic, decomposes it into distinct non-overlapping task specifications, and assigns them to parallel subagents.
+* **Subagents (Parallel Workers):** Execute search-evaluate-refine loops on the configured search provider. Each subagent compiles a local Markdown fact sheet (findings, metrics, named entities, and source URLs) to the workspace disk to keep graph states lightweight.
+* **Cross-Examiner:** References domains against a static credibility database (`data/bias_ratings.json`) and runs classifications on source lean and reliability to compile a unified bias matrix.
+* **Timeline Compiler:** Parses raw findings, extracts explicitly dated events, deduplicates entries, and flags historical or sequence conflicts.
+* **Sufficiency Evaluator:** Reviews gathered intelligence against the target query backlog. If requirements are met, it triggers synthesis; otherwise, it loops back to the Lead Researcher with missing gaps.
+* **Synthesis Engine:** Drafts the multi-section strategic brief. It structures the text dynamically, formats comparative data tables, embeds Mermaid process charts, and filters out source biases.
+* **Citation Agent:** Scans the synthesized text, matches assertions against source lists, and injects inline URL citations (flagging uncorroborated text as `[UNCITED]`).
 
 ---
 
 ## 2. Configuration Settings (.env)
 
-Sentinel is configured using environment variables. An example layout is located in `.env.example`.
+Sentinel is configured using environment variables. Adjust these values in your local `.env` file:
 
-### Core API Settings
-* `GOOGLE_API_KEY`: Primary Google Gemini API credential.
-* `GOOGLE_API_KEY_1`, `GOOGLE_API_KEY_2`, etc.: Fallback API credentials rotated automatically on rate-limit exhaustion.
-* `TAVILY_API_KEY`: Primary Tavily search provider credential.
+### API & Key Rotation
+* `GOOGLE_API_KEY`: Primary Google Gemini API key.
+* `GOOGLE_API_KEY_1`, `GOOGLE_API_KEY_2`, ...: Optional secondary keys. The API client automatically rotates keys on rate-limit (429) exhaustion.
+* `TAVILY_API_KEY`: API credential for Tavily search queries.
 
 ### Model Parameters
-* `LLM_MODEL`: Active LLM for orchestration and synthesis (default: `gemini-2.5-flash`).
+* `LLM_MODEL`: Used for orchestration, timeline compilation, and final synthesis (default: `gemini-3.5-flash` for deep reasoning).
+* `SUBAGENT_MODEL`: Used for parallel subagent search and extraction loops (default: `gemini-3.1-flash-lite` for rate-limit and cost efficiency).
 * `LLM_TEMPERATURE`: LLM generation temperature (default: `0.1`).
-* `SUBAGENT_MODEL`: LLM utilized for parallel subagent executions (default: `gemini-2.5-flash`).
 
-### Research Constraints
-* `MAX_RESEARCH_ITERATIONS`: The maximum number of orchestrator loops (default: `1`).
-* `MAX_SUBAGENTS`: Maximum parallel subagent instances per iteration (default: `2`).
-* `MAX_SEARCH_CALLS_PER_SUBAGENT`: Maximum search requests per subagent instance (default: `3`).
+### Execution Limits
+* `MAX_RESEARCH_ITERATIONS`: Cap on orchestrator feedback loops (default: `1`).
+* `MAX_SUBAGENTS`: Maximum parallel subagent instances spawned per iteration (default: `2`).
+* `MAX_SEARCH_CALLS_PER_SUBAGENT`: Maximum search requests allowed per subagent (default: `3`).
 * `SEARCH_PROVIDER`: Primary search runtime (`tavily` or `duckduckgo`).
 
 ### Database & Authentication
-* `SUPABASE_URL`: Endpoint url of the Supabase project instance.
-* `SUPABASE_ANON_KEY`: Client authorization key for client-side queries.
-* `SUPABASE_SERVICE_ROLE_KEY`: Service account token for database reads and writes.
-* `SUPABASE_JWT_SECRET`: Signature key verification secret for authentication tokens.
-
-### Port
-* `PORT`: Server port binding (default: `8000`).
+* `SUPABASE_URL`: Supabase project URL.
+* `SUPABASE_ANON_KEY`: Client access key for Supabase.
+* `SUPABASE_SERVICE_ROLE_KEY`: Service account token for database read/write actions.
+* `SUPABASE_JWT_SECRET`: Signing verification key for authentication tokens.
 
 ---
 
 ## 3. Technology Stack
 
-* **Orchestration:** LangGraph (StateGraph) with concurrent `Send` dispatch.
-* **LLM Engine:** Gemini 2.5 Flash (via Google AI Studio).
-* **Search Engine:** Tavily API (Primary) with automated fallback to `duckduckgo-search`.
-* **API Framework:** FastAPI (ASGI Python Server).
-* **Database & Auth:** Supabase (PostgreSQL tables, message logging, and JWT authentication).
-* **Frontend:** Vanilla HTML, CSS, JavaScript (Mobile-responsive UI with sidebar drawer toggles and dynamic transitions).
+* **Graph Orchestration:** LangGraph (StateGraph) with dynamic concurrent dispatch.
+* **LLM Engine:** Gemini API client with multi-key failover capabilities.
+* **Data Gathering:** Tavily API (Primary) and DuckDuckGo API (Fallback).
+* **Server Framework:** FastAPI (ASGI Python Web Server).
+* **Database & Persistence:** Supabase (PostgreSQL tables, session logs, and auth).
+* **Frontend:** Vanilla HTML, CSS, JavaScript (Responsive layout with split-pane slider adjustments and outline sidebars).
 
 ---
 
@@ -131,40 +78,51 @@ Sentinel is configured using environment variables. An example layout is located
 
 ### Prerequisites
 * Python 3.11+
-* Active Supabase project instance
+* Active Supabase Database
 
-### Setup
-1. Clone the repository:
+### Installation Steps
+
+1. **Clone the Repository:**
    ```bash
    git clone https://github.com/compileandgo/sentinel.git
    cd sentinel
    ```
-2. Initialize virtual environment and install dependencies:
+
+2. **Set Up Python Environment:**
+   Using standard `pip`:
    ```bash
    python -m venv .venv
    source .venv/bin/activate
    pip install -r requirements.txt
    ```
-3. Establish configuration:
+   Or using `uv` (recommended):
+   ```bash
+   uv venv
+   source .venv/bin/activate
+   uv pip sync
+   ```
+
+3. **Configure Environment:**
    ```bash
    cp .env.example .env
-   # Populate credentials inside .env
+   # Add your API credentials and database configuration to .env
    ```
-4. Run database migrations on your Supabase instance using the SQL structures provided in `supabase-auth/`.
+
+4. **Initialize Database:**
+   Run the SQL scripts provided in the `supabase-auth/` directory on your Supabase SQL editor to create the necessary tables.
 
 ---
 
-## 5. Execution
+## 5. Running the Application
 
-### Local Development Server
-Execute the server using:
+Start the local web application server:
 ```bash
 python src/web/app.py
 ```
-Open `http://127.0.0.1:8000` in a web browser.
+Access the application at `http://127.0.0.1:8000`.
 
 ---
 
-## 6. Future Scale-Up Planning
+## 6. Production Scaling
 
-For a high-concurrency production roadmap detailing transitions to Redis, Celery task runners, sliding-window rate limiters, pgvector semantic caching, and uvicorn clustering, refer to [scaling_plan.md](scaling_plan.md).
+For scaling paths (integrating Redis task queues, Celery workers, sliding-window rate limiters, semantic caching, and uvicorn clustering), see the [scaling_plan.md](scaling_plan.md) document.
