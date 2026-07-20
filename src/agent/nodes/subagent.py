@@ -87,7 +87,7 @@ def subagent_node(task: SubagentTask) -> Dict:
             res = safe_llm_invoke([
                 SystemMessage(content=SUBAGENT_SYSTEM),
                 HumanMessage(content=prompt),
-            ], temperature=0.1)
+            ], model=Config.SUBAGENT_MODEL, temperature=0.1)
             raw = res.content.strip().replace("```json", "").replace("```", "")
             decision = json.loads(raw)
         except Exception as e:
@@ -138,7 +138,7 @@ def subagent_node(task: SubagentTask) -> Dict:
         res = safe_llm_invoke([
             SystemMessage(content=SUBAGENT_SYSTEM),
             HumanMessage(content=report_prompt),
-        ], temperature=0.2)
+        ], model=Config.SUBAGENT_MODEL, temperature=0.2)
         report_content = res.content
     except Exception as e:
         print(f"  [Subagent:{subagent_id}] Both Gemini and Groq failed for report generation: {type(e).__name__}: {e}")
