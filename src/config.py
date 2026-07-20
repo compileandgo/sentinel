@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 def _load_key_pool(primary_env: str, numbered_prefix: str) -> list:
     """Collect all non-empty keys: primary key + any GOOGLE_API_KEY_1, _2, _3... etc."""
