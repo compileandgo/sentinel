@@ -1,5 +1,6 @@
 import re
 import datetime
+import time
 from pathlib import Path
 from typing import Dict, List
 from langchain_core.messages import SystemMessage, HumanMessage
@@ -131,10 +132,19 @@ def citation_agent_node(state: AgentState) -> Dict:
     total_sentences = len(sentences)
     uncited_ratio = uncited_count / max(total_sentences, 1)
 
+    start_time = state.get("start_time")
+    if start_time:
+        duration = time.time() - start_time
+        minutes = int(duration // 60)
+        seconds = int(duration % 60)
+        duration_str = f"{minutes}m {seconds}s" if minutes > 0 else f"{seconds}s"
+    else:
+        duration_str = "unknown"
+
     header = (
         f"# Intelligence Brief: {state['topic']}\n"
         f"**Generated:** {datetime.datetime.now().strftime('%Y-%m-%d %H:%M UTC')}  \n"
-        f"**Run ID:** `{state['run_id']}`  \n"
+        f"**Time taken:** {duration_str}  \n"
         f"**Sources indexed:** {len(seen_urls)}  \n"
         f"**Iterations:** {state.get('iterations', 0)}  \n"
         f"**Uncited sentences:** {uncited_count} / {total_sentences} ({uncited_ratio:.1%})  \n\n---\n\n"

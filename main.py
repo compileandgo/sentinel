@@ -1,6 +1,7 @@
 import sys
 import uuid
 import datetime
+import time
 from src.agent.graph import build_graph
 
 def main():
@@ -24,6 +25,7 @@ def main():
         "topic": topic,
         "run_id": run_id,
         "plan_path": "",
+        "start_time": time.time(),
         "research_backlog": [],
         "subagent_artifacts": [],
         "subagent_tasks": [],

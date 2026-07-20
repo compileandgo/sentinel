@@ -8,6 +8,7 @@ import concurrent.futures
 import threading
 import re
 from pathlib import Path
+import time
 from typing import Dict, List, Optional
 import uvicorn
 from fastapi import FastAPI, BackgroundTasks, HTTPException, Request, Depends, Query
@@ -133,6 +134,7 @@ def run_agent_in_thread(run_id: str, chat_id: str, topic: str, max_iterations: i
         "topic": topic,
         "run_id": run_id,
         "plan_path": "",
+        "start_time": time.time(),
         "research_backlog": [],
         "subagent_artifacts": [],
         "subagent_tasks": [],

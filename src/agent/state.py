@@ -49,6 +49,7 @@ class AgentState(TypedDict):
     run_id: str
     plan_path: str             # path to plan.md written at start of run
     is_news_topic: bool        # classified topic domain (geopolitical/news vs academic/tech)
+    start_time: float          # Epoch timestamp when research started
 
     # Research tracking
     research_backlog: List[str]              # open questions still needing evidence
