@@ -1,76 +1,107 @@
-# Sentinel - Multi-Agent Intelligence Synthesis System
+# Sentinel: Academic Research & Intelligence Pipeline
 
-Sentinel is an analytical research pipeline designed to compile structured, bias-evaluated geopolitical intelligence briefs. The system implements a parallel-subagent architecture built on LangGraph to automate resource gathering, cross-examine domain bias, and synthesize long-form, fact-grounded reports.
+Sentinel is an autonomous, multi-agent research pipeline designed to synthesize formal, academic-grade research papers from raw web intelligence. Built on top of LangGraph, the system coordinates parallel-agent execution, cross-examines information across models for potential bias, compiles grounding event timelines, and generates peer-reviewed reports complete with inline citations, keywords, abstracts, and reference tracking.
 
 ---
 
 ## 1. System Architecture
 
-Sentinel uses a stateful Graph orchestrator to coordinate parallel research subagents, compile factual timelines, evaluate research sufficiency, and synthesize final annotated reports.
+Sentinel uses a stateful Graph orchestrator to manage search agents, analyze source bias, compile event timelines, evaluate completeness, and compile clean markdown reports.
 
 ```mermaid
-graph TD
-    User([User Research Topic]) --> Lead[Lead Researcher Node]
-    Lead -->|Parallel Dispatch| Sub1[Subagent 1]
-    Lead -->|Parallel Dispatch| Sub2[Subagent 2]
-    Lead -->|Parallel Dispatch| SubN[Subagent N]
-    Sub1 & Sub2 & SubN -->|Write Fact Sheets to Disk| Cross[Cross-Examiner Node]
-    Cross -->|Map Domain Bias & Reliability| Chron[Timeline Compiler Node]
-    Chron -->|Extract & Deduplicate Chronology| Eval{Sufficiency Evaluator}
-    Eval -->|Gaps Found: Re-plan Tasks| Lead
-    Eval -->|Confidence Met / Target Cap| Synth[Synthesis Engine]
-    Synth -->|Draft Structured Sections| Cit[Citation Agent]
-    Cit -->|Ground Claims & Inject URL Citations| Out([Final Markdown Brief])
+flowchart TD
+    User([User Research]) --> Lead[LeadResearcher]
+    
+    Lead -->|Conditional| SubTasks{Subagent Tasks Available?}
+    
+    SubTasks -- "Yes: Parallel Fan-out" --> Sub1
+    SubTasks -- "Yes: Parallel Fan-out" --> Sub2
+    SubTasks -- "Yes: Parallel Fan-out" --> SubN
+    
+    subgraph Subagent_Search_Loops ["Subagent Search Loops"]
+        Sub1[Subagent 1]
+        Sub2[Subagent 2]
+        SubN[Subagent N]
+        RSS[(Wire-service RSS)]
+    end
+    
+    Sub1 -->|Web Queries| Search[Search Provider: Tavily / DuckDuckGo]
+    Sub2 -->|Web Queries| Search
+    SubN -->|Web Queries| Search
+    RSS -->|Supplement| Search
+    
+    Search -->|Gathered Raw| Cross[Cross Examiner]
+    Search -->|Gathered Raw| Timeline[Timeline Compiler]
+    
+    subgraph Cross_Model_Bias ["Cross-Model Bias"]
+        Cross --> Gem[Gemini]
+        Cross --> Groq[Groq]
+        Gem --> Disagree{Disagreement?}
+        Groq --> Disagree
+        Disagree -- Yes --> Mark[Mark model_disagreement=True]
+    end
+    
+    GDELT[(GDELT Event)] -->|Grounding Events| Timeline
+    
+    SubTasks -- No --> Eval[Sufficiency Evaluator Node]
+    Disagree -- No --> Eval
+    Mark --> Eval
+    Timeline --> Eval
+    
+    Eval -->|Loop: status='continue'| Lead
+    Eval -->|Routing: status='synthesize'| Synth[Synthesis Engine Node]
+    
+    Synth --> Cit[Citation Agent]
+    Cit --> End([END])
+    
+    style User fill:#d1e7dd,stroke:#0f5132,stroke-width:1px
+    style End fill:#f8d7da,stroke:#842029,stroke-width:1px
+    style SubTasks fill:#e2e3e5,stroke:#383d41,stroke-width:1px
+    style Disagree fill:#e2e3e5,stroke:#383d41,stroke-width:1px
 ```
 
 ### Pipeline Components
 
-* **Lead Researcher (Orchestrator):** Analyzes the root topic, decomposes it into distinct non-overlapping task specifications, and assigns them to parallel subagents.
-* **Subagents (Parallel Workers):** Execute search-evaluate-refine loops on the configured search provider. Each subagent compiles a local Markdown fact sheet (findings, metrics, named entities, and source URLs) to the workspace disk to keep graph states lightweight.
-* **Cross-Examiner:** References domains against a static credibility database (`data/bias_ratings.json`) and runs classifications on source lean and reliability to compile a unified bias matrix.
-* **Timeline Compiler:** Parses raw findings, extracts explicitly dated events, deduplicates entries, and flags historical or sequence conflicts.
-* **Sufficiency Evaluator:** Reviews gathered intelligence against the target query backlog. If requirements are met, it triggers synthesis; otherwise, it loops back to the Lead Researcher with missing gaps.
-* **Synthesis Engine:** Drafts the multi-section strategic brief. It structures the text dynamically, formats comparative data tables, embeds Mermaid process charts, and filters out source biases.
-* **Citation Agent:** Scans the synthesized text, matches assertions against source lists, and injects inline URL citations (flagging uncorroborated text as `[UNCITED]`).
+* **LeadResearcher (Orchestrator):** Performs query analysis, identifies research sub-tasks, plans execution, and dynamically dispatches tasks to parallel subagents.
+* **Subagents (Parallel Search):** Perform targeted search loops, gather raw text and metadata from sources, and compile fact sheets locally to save memory.
+* **Wire-service RSS Feeds:** Supplements queries by fetching live headlines and article metadata from feeds.
+* **Cross-Examiner:** Detects source bias and reliability ratings against a local database (`data/bias_ratings.json`). Compares domain lean classifications across models (Gemini vs. Groq) and flags contradictions.
+* **Timeline Compiler:** Merges chronologies, filters duplicate items, and resolves date inconsistencies using structured event data from GDELT.
+* **Sufficiency Evaluator:** Inspects the current evidence backlog against the planned scope. If information gaps remain, it loops back for further iterations; otherwise, it triggers report compilation.
+* **Synthesis Engine:** Compiles individual sections, generating front-matter (Title Page, Abstract, Keywords, and numbered headings) conforming to formal academic style guidelines.
+* **Citation Agent:** Traces text assertions back to source URLs, aligns citations, formats a standardized Reference list, and tags uncorroborated text as `[UNCITED]`.
 
 ---
 
-## 2. Configuration Settings (.env)
+## 2. Configuration Settings (`.env`)
 
 Sentinel is configured using environment variables. Adjust these values in your local `.env` file:
 
 ### API & Key Rotation
-* `GOOGLE_API_KEY`: Primary Google Gemini API key.
-* `GOOGLE_API_KEY_1`, `GOOGLE_API_KEY_2`, ...: Optional secondary keys. The API client automatically rotates keys on rate-limit (429) exhaustion.
-* `TAVILY_API_KEY`: API credential for Tavily search queries.
+* `GOOGLE_API_KEY`: Primary Gemini API key.
+* `GOOGLE_API_KEY_1`, `GOOGLE_API_KEY_2`, ...: Secondary keys. The system automatically rotates through this pool to handle rate limits and 503 overloads.
+* `TAVILY_API_KEY`: Key for Tavily queries. Falls back to DuckDuckGo if blank or rate-limited.
+* `GROQ_API_KEY`, `GROQ_API_KEY_1`, ...: Fallback keys for cross-model cross-examinations and overall failovers.
 
 ### Model Parameters
-* `LLM_MODEL`: Used for orchestration, timeline compilation, and final synthesis (default: `gemini-3.5-flash` for deep reasoning).
-* `SUBAGENT_MODEL`: Used for parallel subagent search and extraction loops (default: `gemini-3.1-flash-lite` for rate-limit and cost efficiency).
-* `LLM_TEMPERATURE`: LLM generation temperature (default: `0.1`).
+* `LLM_MODEL`: Primary reasoning model used for orchestration, timeline compiling, and final synthesis (e.g. `gemini-3.5-flash` or `gemini-3.1-flash-lite`).
+* `SUBAGENT_MODEL`: Model used for parallel subagent search and extraction (e.g. `gemini-3.1-flash-lite`).
+* `LLM_TEMPERATURE`: Control model creativity (default: `0.1` for objective research).
 
-### Execution Limits
-* `MAX_RESEARCH_ITERATIONS`: Cap on orchestrator feedback loops (default: `1`).
-* `MAX_SUBAGENTS`: Maximum parallel subagent instances spawned per iteration (default: `2`).
-* `MAX_SEARCH_CALLS_PER_SUBAGENT`: Maximum search requests allowed per subagent (default: `3`).
+### Execution Budgets
+* `MAX_RESEARCH_ITERATIONS`: The maximum number of feedback loops allowed before forcing synthesis (default: `1`).
+* `MAX_SUBAGENTS`: The maximum number of parallel subagents spawned in one iteration (default: `2`).
+* `MAX_SEARCH_CALLS_PER_SUBAGENT`: limit on search calls per agent (default: `3`).
 * `SEARCH_PROVIDER`: Primary search runtime (`tavily` or `duckduckgo`).
-
-### Database & Authentication
-* `SUPABASE_URL`: Supabase project URL.
-* `SUPABASE_ANON_KEY`: Client access key for Supabase.
-* `SUPABASE_SERVICE_ROLE_KEY`: Service account token for database read/write actions.
-* `SUPABASE_JWT_SECRET`: Signing verification key for authentication tokens.
 
 ---
 
 ## 3. Technology Stack
 
-* **Graph Orchestration:** LangGraph (StateGraph) with dynamic concurrent dispatch.
-* **LLM Engine:** Gemini API client with multi-key failover capabilities.
-* **Data Gathering:** Tavily API (Primary) and DuckDuckGo API (Fallback).
-* **Server Framework:** FastAPI (ASGI Python Web Server).
-* **Database & Persistence:** Supabase (PostgreSQL tables, session logs, and auth).
-* **Frontend:** Vanilla HTML, CSS, JavaScript (Responsive layout with split-pane slider adjustments and outline sidebars).
+* **Orchestration:** LangGraph (StateGraph) supporting parallel execution branches.
+* **LLM Layer:** Custom Gemini client wrapper with rate-limit tracking, blacklist rotation, and automatic Groq/Llama failovers.
+* **Web UI:** Fast API ASGI backend coupled with a premium, responsive frontend dashboard featuring split-pane slider adjustments and structured sidebar navigation.
+* **Database & Auth:** Supabase PostgreSQL integrations for sessions, user identity, and history.
 
 ---
 
@@ -78,38 +109,38 @@ Sentinel is configured using environment variables. Adjust these values in your 
 
 ### Prerequisites
 * Python 3.11+
-* Active Supabase Database
+* Supabase Account & Database
 
 ### Installation Steps
 
-1. **Clone the Repository:**
+1. **Clone and Install:**
    ```bash
    git clone https://github.com/compileandgo/sentinel.git
    cd sentinel
    ```
 
-2. **Set Up Python Environment:**
-   Using standard `pip`:
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt
-   ```
-   Or using `uv` (recommended):
+2. **Setup virtualenv:**
+   Using `uv` (recommended):
    ```bash
    uv venv
    source .venv/bin/activate
    uv pip sync
    ```
+   Or standard `pip`:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   ```
 
 3. **Configure Environment:**
    ```bash
    cp .env.example .env
-   # Add your API credentials and database configuration to .env
+   # Add your API credentials and Supabase URLs to .env
    ```
 
-4. **Initialize Database:**
-   Run the SQL scripts provided in the `supabase-auth/` directory on your Supabase SQL editor to create the necessary tables.
+4. **Initialize Tables:**
+   Execute the scripts in the `supabase-auth/` directory on your Supabase SQL editor to create the database schemas.
 
 ---
 
@@ -120,9 +151,3 @@ Start the local web application server:
 python src/web/app.py
 ```
 Access the application at `http://127.0.0.1:8000`.
-
----
-
-## 6. Production Scaling
-
-For scaling paths (integrating Redis task queues, Celery workers, sliding-window rate limiters, semantic caching, and uvicorn clustering), see the [scaling_plan.md](scaling_plan.md) document.
