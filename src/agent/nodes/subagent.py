@@ -104,9 +104,19 @@ def subagent_node(task: SubagentTask) -> Dict:
                 break
             
             print(f"   [Subagent:{subagent_id}] (Call {calls_made+1}/{max_calls}) Searching: '{query}'")
+            
+            # Run web search
             results = search(query, subagent_id=subagent_id, max_results=3, enable_rss=task.get("enable_rss", True))
             
-            # Fetch full text for the retrieved search results
+            # Run local RAG search (Pew Reports)
+            from src.tools.rag_search import rag_search
+            try:
+                rag_results = rag_search(query, subagent_id=subagent_id, max_results=3)
+            except Exception as e:
+                print(f"  [Subagent:{subagent_id}] RAG search failed: {e}")
+                rag_results = []
+            
+            # Fetch full text for web results only
             from src.tools.fetch import fetch_article
             for r in results:
                 url = r.get("source_url")
@@ -117,8 +127,9 @@ def subagent_node(task: SubagentTask) -> Dict:
                 else:
                     r["full_text"] = None
 
-            local_intel.extend(results)
-            print(f"     → Found {len(results)} results ({reasoning[:50]}...)")
+            combined_results = rag_results + results
+            local_intel.extend(combined_results)
+            print(f"     → Found {len(combined_results)} total results ({len(rag_results)} RAG, {len(results)} Web) ({reasoning[:50]}...)")
             calls_made += 1
         else:
             print(f"   [Subagent:{subagent_id}] Finalizing research. Reasoning: {reasoning}")

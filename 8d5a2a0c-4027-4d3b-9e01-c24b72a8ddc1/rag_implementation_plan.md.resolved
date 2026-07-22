@@ -1,0 +1,32 @@
+# Plan
+
+Implement an asynchronous parent-child RAG pipeline using Pinecone for vector indexing (768-dim Google `text-embedding-004` embeddings), Supabase for parent text chunk storage, and local CPU-based `FlashRank` for zero-cost reranking. This will enable Sentinel's subagents to retrieve contextually rich academic and news reports during the research loop.
+
+## Scope
+
+*   **In**:
+    *   Supabase SQL schema table `research_chunks` for relational parent-child mapping.
+    *   Pinecone index initialization script (`scripts/setup_pinecone.py`) to verify/create `sentinel-index`.
+    *   Asynchronous document ingestion CLI (`scripts/ingest_documents.py`) parsing Pew PDFs with `pypdf`, performing parent-child text splitting (1000 and 200 tokens respectively), embedding via Google APIs, and indexing.
+    *   Optimized retrieval engine (`src/tools/rag_search.py`) performing Google embedding search, Pinecone query, Supabase parent context retrieval, and CPU FlashRank reranking.
+    *   Integration of RAG search as a utility/tool inside the LangGraph subagents workflow.
+    *   API configuration keys added to `.env` and `src/config.py`.
+*   **Out**:
+    *   Drag-and-drop document upload interface (ingestion remains a CLI/background worker task).
+    *   Multi-tenant document access controls.
+    *   System OCR engine for scanned image-only PDFs.
+
+## Action Items
+
+- [ ] **Step 1: Install Dependencies**: Add `pypdf`, `flashrank`, and `pinecone-client` packages to the project dependencies in `pyproject.toml`.
+- [ ] **Step 2: Configure Environment Variables**: Add `PINECONE_INDEX_NAME=sentinel-index` to `.env` and load it inside `src/config.py` along with helper functions for Pinecone client initialization.
+- [ ] **Step 3: Apply Database Migration**: Execute the DDL script to create the `research_chunks` table in Supabase.
+- [ ] **Step 4: Implement Pinecone Setup Script**: Create `scripts/setup_pinecone.py` to programmatically provision `sentinel-index` with 768 dimensions and cosine metric.
+- [ ] **Step 5: Develop Ingestion CLI**: Create `scripts/ingest_documents.py` to extract PDF pages, perform parent-child text splitting (1000 and 200 tokens respectively), generate embeddings, and batch upload to Pinecone and Supabase.
+- [ ] **Step 6: Build Retrieval & Rerank Tool**: Implement `src/tools/rag_search.py` using Pinecone dense search and local CPU-based Cross-Encoder reranking via `FlashRank`.
+- [ ] **Step 7: Integrate RAG inside LangGraph**: Mount the retrieval utility as an available search tool for the subagents in `src/agent/nodes/subagent.py`.
+- [ ] **Step 8: End-to-End Validation**: Run the Pew scraper, ingest a subset of reports, run a test agent research run, and assert response quality and retrieval latencies.
+
+## Open Questions
+
+*   None (all items resolved and locked during the brainstorming phase).

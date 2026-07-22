@@ -259,3 +259,20 @@ def safe_groq_invoke(
     if all_groq_exhausted:
         raise RuntimeError("All Groq keys permanently exhausted.")
     return _clean_response(_try_groq_pool(messages, temperature))
+
+
+def make_embeddings():
+    """Instantiate GoogleGenerativeEmbeddings using the first non-exhausted key in the pool."""
+    from langchain_google_genai import GoogleGenerativeEmbeddings
+    for key in Config.GOOGLE_API_KEYS:
+        if not _gemini_exhausted.get(key):
+            return GoogleGenerativeEmbeddings(
+                model="models/text-embedding-004",
+                google_api_key=key,
+            )
+    # Fallback to default
+    key = Config.GOOGLE_API_KEYS[0] if Config.GOOGLE_API_KEYS else os.getenv("GOOGLE_API_KEY", "")
+    return GoogleGenerativeEmbeddings(
+        model="models/text-embedding-004",
+        google_api_key=key,
+    )

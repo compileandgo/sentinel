@@ -1,0 +1,5 @@
+{
+  "artifactType":  "ARTIFACT_TYPE_IMPLEMENTATION_PLAN",
+  "summary":  "Implementation plan for RAG pipeline in Sentinel using Pinecone, Supabase, Google text-embedding-004, and FlashRank.",
+  "updatedAt":  "2026-07-21T06:42:39.382372993Z"
+}
