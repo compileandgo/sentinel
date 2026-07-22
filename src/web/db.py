@@ -42,6 +42,20 @@ def verify_token(token: str) -> dict:
 
 # DB Operations
 
+def _ensure_string(value) -> str:
+    """Safely convert any value to a string, handling lists/dicts/None."""
+    if isinstance(value, str):
+        return value
+    elif isinstance(value, list):
+        # Join list items into a space-separated string
+        return " ".join(str(item) for item in value if item)
+    elif isinstance(value, dict):
+        return str(value)
+    elif value is None:
+        return ""
+    else:
+        return str(value)
+
 def db_list_briefs(user: AuthenticatedUser) -> List[Dict]:
     """Lists all chats and briefs belonging to the user from the database."""
     try:
@@ -58,11 +72,14 @@ def db_list_briefs(user: AuthenticatedUser) -> List[Dict]:
             chat_id = chat["id"]
             brief = briefs_by_chat.get(chat_id)
             
-            # Map database keys to frontend schema
+            # Map database keys to frontend schema - ENSURE all strings
+            title = _ensure_string(chat.get("title", "Untitled"))
+            updated_at = _ensure_string(chat.get("updated_at", ""))
+            
             result.append({
                 "filename": brief["filename"] if brief else chat_id,
-                "title": chat["title"],
-                "date": chat["updated_at"][:16].replace("T", " ") + " UTC",
+                "title": title,
+                "date": updated_at[:16].replace("T", " ") + " UTC" if updated_at else "Unknown",
                 "run_id": chat_id,
                 "size": len(brief["content"]) if brief else 0
             })
@@ -92,15 +109,15 @@ def db_get_brief_content(user: AuthenticatedUser, filename: str) -> Optional[Dic
         # Get brief content
         content = ""
         if brief_res.data:
-            content = brief_res.data[0]["content"]
+            content = _ensure_string(brief_res.data[0]["content"])
 
         # Get chat summary/brief_summary memory fields
         chat_meta = user.client.table("chats").select("summary, brief_summary").eq("id", chat_id).execute()
         summary = ""
         brief_summary = ""
         if chat_meta.data:
-            summary = chat_meta.data[0].get("summary") or ""
-            brief_summary = chat_meta.data[0].get("brief_summary") or ""
+            summary = _ensure_string(chat_meta.data[0].get("summary") or "")
+            brief_summary = _ensure_string(chat_meta.data[0].get("brief_summary") or "")
             
         # Get chat messages
         messages_res = user.client.table("messages").select("role, content, type, created_at").eq("chat_id", chat_id).order("created_at", desc=False).execute()
@@ -110,12 +127,13 @@ def db_get_brief_content(user: AuthenticatedUser, filename: str) -> Optional[Dic
         for msg in messages:
             msg_data = {
                 "role": msg["role"],
-                "content": msg["content"]
+                "content": _ensure_string(msg["content"])
             }
             if msg.get("type") and msg["type"] != "text":
                 msg_data["type"] = msg["type"]
             # Convert date to standard display format
-            msg_data["date"] = msg["created_at"][:16].replace("T", " ") + " UTC"
+            created_at = _ensure_string(msg.get("created_at", ""))
+            msg_data["date"] = created_at[:16].replace("T", " ") + " UTC" if created_at else "Unknown"
             chat_history.append(msg_data)
             
         return {
@@ -132,7 +150,7 @@ def db_get_brief_content(user: AuthenticatedUser, filename: str) -> Optional[Dic
 def db_create_chat(user: AuthenticatedUser, title: str) -> str:
     """Creates a new chat session for the user."""
     res = user.client.table("chats").insert({
-        "title": title,
+        "title": _ensure_string(title),
         "user_id": user.id
     }).execute()
     if not res.data:
@@ -148,9 +166,9 @@ def db_update_chat_memory(
     """Persists updated memory fields (rolling summary / brief summary) for a chat."""
     payload: Dict = {}
     if summary is not None:
-        payload["summary"] = summary
+        payload["summary"] = _ensure_string(summary)
     if brief_summary is not None:
-        payload["brief_summary"] = brief_summary
+        payload["brief_summary"] = _ensure_string(brief_summary)
     if payload:
         try:
             user.client.table("chats").update(payload).eq("id", chat_id).execute()
@@ -162,7 +180,7 @@ def db_save_message(user: AuthenticatedUser, chat_id: str, role: str, content: s
     user.client.table("messages").insert({
         "chat_id": chat_id,
         "role": role,
-        "content": content,
+        "content": _ensure_string(content),
         "type": msg_type
     }).execute()
 
@@ -172,7 +190,7 @@ def db_save_message_admin(chat_id: str, role: str, content: str, msg_type: str =
     admin.table("messages").insert({
         "chat_id": chat_id,
         "role": role,
-        "content": content,
+        "content": _ensure_string(content),
         "type": msg_type
     }).execute()
 
@@ -183,7 +201,7 @@ def db_save_brief_admin(chat_id: str, title: str, content: str, filename: str) -
     existing = admin.table("research_briefs").select("id").eq("chat_id", chat_id).execute()
     if existing.data:
         admin.table("research_briefs").update({
-            "title": title,
+            "title": _ensure_string(title),
             "content": content,
             "filename": filename,
             "updated_at": "now()"
@@ -191,13 +209,13 @@ def db_save_brief_admin(chat_id: str, title: str, content: str, filename: str) -
     else:
         admin.table("research_briefs").insert({
             "chat_id": chat_id,
-            "title": title,
+            "title": _ensure_string(title),
             "content": content,
             "filename": filename
         }).execute()
         
     # Also update the chat table's title and updated_at timestamp to bubble it up in recent list
-    admin.table("chats").update({"title": title, "updated_at": "now()"}).eq("id", chat_id).execute()
+    admin.table("chats").update({"title": _ensure_string(title), "updated_at": "now()"}).eq("id", chat_id).execute()
 
 def db_delete_chat(user: AuthenticatedUser, chat_id: str) -> bool:
     """Deletes a chat and all cascading records (messages/briefs)."""
@@ -212,12 +230,12 @@ def db_rename_chat(user: AuthenticatedUser, chat_id: str, new_title: str) -> boo
     """Renames a chat title in both chats and research_briefs tables."""
     try:
         # Update chats table
-        chats_res = user.client.table("chats").update({"title": new_title}).eq("id", chat_id).execute()
+        chats_res = user.client.table("chats").update({"title": _ensure_string(new_title)}).eq("id", chat_id).execute()
         if not chats_res.data:
             return False
             
         # Update research_briefs table (if exists)
-        user.client.table("research_briefs").update({"title": new_title}).eq("chat_id", chat_id).execute()
+        user.client.table("research_briefs").update({"title": _ensure_string(new_title)}).eq("chat_id", chat_id).execute()
         return True
     except Exception as e:
         print(f"Error renaming chat {chat_id}: {e}")
