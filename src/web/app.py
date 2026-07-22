@@ -1110,6 +1110,17 @@ async def chat_stream_handler(req: ChatRequest, user: AuthenticatedUser = Depend
             llm = make_llm()
             async for chunk in llm.astream(messages):
                 token = chunk.content
+                if isinstance(token, list):
+                    text_parts = []
+                    for part in token:
+                        if isinstance(part, str):
+                            text_parts.append(part)
+                        elif isinstance(part, dict) and "text" in part:
+                            text_parts.append(part["text"])
+                    token = "".join(text_parts)
+                elif not isinstance(token, str):
+                    token = str(token) if token is not None else ""
+
                 if token:
                     full_response += token
                     yield f"data: {json.dumps({'token': token})}\n\n"

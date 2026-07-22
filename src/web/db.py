@@ -108,9 +108,19 @@ def db_get_brief_content(user: AuthenticatedUser, filename: str) -> Optional[Dic
         
         chat_history = []
         for msg in messages:
+            raw_content = msg["content"]
+            # Supabase may return jsonb columns as a list — flatten to plain string
+            if isinstance(raw_content, list):
+                raw_content = " ".join(
+                    str(part.get("text", part) if isinstance(part, dict) else part)
+                    for part in raw_content
+                )
+            elif not isinstance(raw_content, str):
+                raw_content = str(raw_content)
+
             msg_data = {
                 "role": msg["role"],
-                "content": msg["content"]
+                "content": raw_content
             }
             if msg.get("type") and msg["type"] != "text":
                 msg_data["type"] = msg["type"]
