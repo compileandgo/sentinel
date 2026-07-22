@@ -792,8 +792,12 @@ def build_context_for_prompt(
     turns = _non_brief_messages(chat_history)
     window = turns[-WINDOW_SIZE:] if len(turns) > WINDOW_SIZE else turns
     if window:
+        def _content_str(c):
+            if isinstance(c, list):
+                return " ".join(str(part.get("text", part) if isinstance(part, dict) else part) for part in c)
+            return str(c)
         window_text = "\n".join(
-            f"{'User' if m['role'] == 'user' else 'Assistant'}: {m['content']}"
+            f"{'User' if m['role'] == 'user' else 'Assistant'}: {_content_str(m['content'])}"
             for m in window
         )
         parts.append(f"[Recent Messages]\n{window_text}")
@@ -823,8 +827,12 @@ async def maybe_compress_history(
     if not to_compress:
         return current_summary
 
+    def _content_str(c):
+        if isinstance(c, list):
+            return " ".join(str(part.get("text", part) if isinstance(part, dict) else part) for part in c)
+        return str(c)
     history_text = "\n".join(
-        f"{'User' if m['role'] == 'user' else 'Assistant'}: {m['content']}"
+        f"{'User' if m['role'] == 'user' else 'Assistant'}: {_content_str(m['content'])}"
         for m in to_compress
     )
     prefix = f"Previous summary:\n{current_summary}\n\n" if current_summary else ""
