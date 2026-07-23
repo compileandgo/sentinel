@@ -140,6 +140,7 @@ def _try_gemini_pool(messages, model, temperature):
                     temperature=temperature if temperature is not None else Config.LLM_TEMPERATURE,
                     google_api_key=key,
                     timeout=60.0,
+                    max_retries=1,
                 )
                 result = _invoke_with_retry(llm, messages, name=f"Gemini[{attempt_model}...{key[-6:]}]")
                 if attempt_model != primary_model:
@@ -182,6 +183,7 @@ def _try_groq_pool(messages, temperature):
                 temperature=temperature if temperature is not None else Config.LLM_TEMPERATURE,
                 groq_api_key=key,
                 timeout=60.0,
+                max_retries=1,
             )
             result = _invoke_with_retry(llm, messages, name=f"Groq[...{key[-6:]}]")
             return result
@@ -264,15 +266,35 @@ def safe_groq_invoke(
 class FastEmbedWrapper:
     def __init__(self, model_name: str = "BAAI/bge-base-en-v1.5"):
         from fastembed import TextEmbedding
-        self.model = TextEmbedding(model_name=model_name)
+        # Use persistent workspace cache_dir instead of volatile /tmp
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        cache_dir = os.path.join(project_root, ".fastembed_cache")
+        os.makedirs(cache_dir, exist_ok=True)
+        self.model_name = model_name
+        self.cache_dir = cache_dir
+        self.model = TextEmbedding(model_name=model_name, cache_dir=cache_dir)
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
-        embeddings = list(self.model.embed(texts))
-        return [e.tolist() for e in embeddings]
+        try:
+            embeddings = list(self.model.embed(texts))
+            return [e.tolist() for e in embeddings]
+        except Exception as e:
+            print(f"  [FastEmbed] Document embedding error: {e} — re-initializing model...")
+            from fastembed import TextEmbedding
+            self.model = TextEmbedding(model_name=self.model_name, cache_dir=self.cache_dir)
+            embeddings = list(self.model.embed(texts))
+            return [e.tolist() for e in embeddings]
 
     def embed_query(self, text: str) -> List[float]:
-        embeddings = list(self.model.embed([text]))
-        return embeddings[0].tolist()
+        try:
+            embeddings = list(self.model.embed([text]))
+            return embeddings[0].tolist()
+        except Exception as e:
+            print(f"  [FastEmbed] Query embedding error: {e} — re-initializing model...")
+            from fastembed import TextEmbedding
+            self.model = TextEmbedding(model_name=self.model_name, cache_dir=self.cache_dir)
+            embeddings = list(self.model.embed([text]))
+            return embeddings[0].tolist()
 
 _embeddings_singleton = None
 
