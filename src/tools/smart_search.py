@@ -41,18 +41,20 @@ def evaluate_search_intent(query: str) -> Dict[str, Any]:
             "reasoning": "Conversational greeting"
         }
         
-    # Fast Heuristics: Explicit Search Keywords -> Force Search
+    # Fast Heuristics: Explicit Search Keywords & Price/News/Facts Queries -> Force Search
     search_triggers = [
         "search for", "look up", "recent news", "pew research", "pew report",
         "latest statistics", "current status of", "what happened in", "who won",
-        "public opinion on", "survey data", "latest trends"
+        "public opinion on", "survey data", "latest trends", "price of", "cost of",
+        "current price", "stock price", "crude oil", "bitcoin", "weather in",
+        "rate of", "how much is", "what is the price", "today", "latest"
     ]
     if any(t in clean_q for t in search_triggers):
         clean_query = re.sub(r'^(search for|look up|find|get)\s+', '', query, flags=re.IGNORECASE)
         return {
             "needs_search": True,
             "search_query": clean_query.strip(),
-            "reasoning": "Explicit search keyword detected"
+            "reasoning": "Instant search trigger keyword detected"
         }
         
     # Fast Heuristics: Code/Math -> No Search
@@ -97,23 +99,33 @@ def evaluate_search_intent(query: str) -> Dict[str, Any]:
 
 def execute_smart_search(search_query: str, subagent_id: str = "chat") -> Dict[str, Any]:
     """
-    Executes hybrid RAG vector search + live web search and compiles grounding context.
+    Executes hybrid RAG vector search + live web search concurrently in parallel.
     """
-    print(f"  [SmartSearch] Executing search for: '{search_query}'")
+    from concurrent.futures import ThreadPoolExecutor
+    print(f"  [SmartSearch] Executing parallel search for: '{search_query}'")
     
-    # 1. Local RAG Search (Pew PDFs)
-    try:
-        rag_intel = rag_search(search_query, subagent_id=subagent_id, max_results=3)
-    except Exception as e:
-        print(f"  [SmartSearch] RAG search error: {e}")
-        rag_intel = []
-        
-    # 2. Live Web Search (Tavily/DDG)
-    try:
-        web_intel = search(search_query, subagent_id=subagent_id, max_results=3)
-    except Exception as e:
-        print(f"  [SmartSearch] Web search error: {e}")
-        web_intel = []
+    rag_intel: List[RawIntel] = []
+    web_intel: List[RawIntel] = []
+    
+    def _run_rag():
+        try:
+            return rag_search(search_query, subagent_id=subagent_id, max_results=2)
+        except Exception as e:
+            print(f"  [SmartSearch] RAG search error: {e}")
+            return []
+            
+    def _run_web():
+        try:
+            return search(search_query, subagent_id=subagent_id, max_results=3, enable_rss=False)
+        except Exception as e:
+            print(f"  [SmartSearch] Web search error: {e}")
+            return []
+            
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        f_rag = executor.submit(_run_rag)
+        f_web = executor.submit(_run_web)
+        rag_intel = f_rag.result()
+        web_intel = f_web.result()
 
     # 3. Combine & Deduplicate by URL
     combined_intel: List[RawIntel] = []

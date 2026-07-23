@@ -1136,9 +1136,10 @@ async def chat_stream_handler(req: ChatRequest, user: AuthenticatedUser = Depend
 
             grounded_context = ""
             if needs_search:
-                yield f"data: {json.dumps({'status': f'Searching reports & web for: \"{search_query}\"...'})}\n\n"
+                yield f"data: {json.dumps({'status': 'Searching on web...'})}\n\n"
                 search_data = await loop.run_in_executor(None, execute_smart_search, search_query, "chat_stream")
                 grounded_context = search_data.get("formatted_context", "")
+                yield f"data: {json.dumps({'status': 'Searched the web'})}\n\n"
 
             prompt_context = build_context_for_prompt(chat_history, rolling_summary, brief_summary, context)
             if grounded_context:
