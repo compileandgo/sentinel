@@ -1045,10 +1045,12 @@ async def chat_handler(req: ChatRequest, user: AuthenticatedUser = Depends(get_c
         search_query = intent.get("search_query", req.query)
 
     grounded_context = ""
+    sources = []
     if needs_search:
         print(f"   [Chat] Smart search executing for: '{search_query}'")
         search_data = await loop.run_in_executor(None, execute_smart_search, search_query, "chat")
         grounded_context = search_data.get("formatted_context", "")
+        sources = search_data.get("sources", [])
 
     prompt_context = build_context_for_prompt(chat_history, rolling_summary, brief_summary, context)
     if grounded_context:
@@ -1079,8 +1081,8 @@ async def chat_handler(req: ChatRequest, user: AuthenticatedUser = Depends(get_c
         )
 
         if new_chat_id and not chat_id:
-            return {"response": assistant_response, "filename": new_chat_id}
-        return {"response": assistant_response, "matched_filename": target_filename}
+            return {"response": assistant_response, "filename": new_chat_id, "sources": sources}
+        return {"response": assistant_response, "matched_filename": target_filename, "sources": sources}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1135,11 +1137,13 @@ async def chat_stream_handler(req: ChatRequest, user: AuthenticatedUser = Depend
                 search_query = intent.get("search_query", req.query)
 
             grounded_context = ""
+            sources = []
             if needs_search:
                 yield f"data: {json.dumps({'status': 'Searching on web...'})}\n\n"
                 search_data = await loop.run_in_executor(None, execute_smart_search, search_query, "chat_stream")
                 grounded_context = search_data.get("formatted_context", "")
-                yield f"data: {json.dumps({'status': 'Searched the web'})}\n\n"
+                sources = search_data.get("sources", [])
+                yield f"data: {json.dumps({'status': 'Searched the web', 'sources': sources})}\n\n"
 
             prompt_context = build_context_for_prompt(chat_history, rolling_summary, brief_summary, context)
             if grounded_context:

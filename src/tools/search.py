@@ -51,10 +51,10 @@ def _duckduckgo_search(query: str, subagent_id: str, max_results: int = 3) -> Li
         return []
 
 
-def search(query: str, subagent_id: str = "lead", max_results: int = 3, enable_rss: bool = True) -> List[RawIntel]:
+def search(query: str, subagent_id: str = "lead", max_results: int = 4, enable_rss: bool = False) -> List[RawIntel]:
     """
-    Primary search interface.
-    Provider selection: SEARCH_PROVIDER env var. Auto-falls back on error.
+    Primary web search interface.
+    Uses Tavily / DuckDuckGo web search API exclusively for recent web data.
     """
     from src.tools.llm import thread_local
     run_id = getattr(thread_local, "run_id", None)
@@ -70,12 +70,6 @@ def search(query: str, subagent_id: str = "lead", max_results: int = 3, enable_r
         results = _tavily_search(query, subagent_id, max_results)
     else:
         results = _duckduckgo_search(query, subagent_id, max_results)
-
-    if Config.ENABLE_RSS_FEEDS and enable_rss:
-        print(f"   [Search] RSS feed supplement enabled. Fetching wire-service feeds...")
-        rss_results = _fetch_rss_feeds(query, subagent_id, max_results=2)
-        print(f"     → Supplemented search results with {len(rss_results)} RSS items.")
-        results.extend(rss_results)
 
     return results
 
