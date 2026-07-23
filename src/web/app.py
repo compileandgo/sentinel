@@ -1015,6 +1015,7 @@ async def chat_handler(req: ChatRequest, user: AuthenticatedUser = Depends(get_c
         raise HTTPException(status_code=400, detail="Query cannot be empty")
 
     from src.tools.llm import safe_llm_invoke
+    from src.tools.smart_search import evaluate_search_intent, execute_smart_search
     from langchain_core.messages import SystemMessage, HumanMessage
 
     (
@@ -1031,12 +1032,30 @@ async def chat_handler(req: ChatRequest, user: AuthenticatedUser = Depends(get_c
     if chat_id and chat_history:
         rolling_summary = await maybe_compress_history(user, chat_id, chat_history, rolling_summary)
 
+    loop = asyncio.get_running_loop()
+
+    # Smart Search Evaluation
+    needs_search = req.enable_search
+    search_query = req.query
+
+    if needs_search is None:
+        intent = await loop.run_in_executor(None, evaluate_search_intent, req.query)
+        needs_search = intent.get("needs_search", False)
+        search_query = intent.get("search_query", req.query)
+
+    grounded_context = ""
+    if needs_search:
+        print(f"   [Chat] Smart search executing for: '{search_query}'")
+        search_data = await loop.run_in_executor(None, execute_smart_search, search_query, "chat")
+        grounded_context = search_data.get("formatted_context", "")
+
     prompt_context = build_context_for_prompt(chat_history, rolling_summary, brief_summary, context)
+    if grounded_context:
+        prompt_context = f"{grounded_context}\n\n{prompt_context}" if prompt_context else grounded_context
 
     user_prompt = f"{prompt_context}\n\nUser Question: {req.query}" if prompt_context else f"User Question: {req.query}"
 
     try:
-        loop = asyncio.get_running_loop()
         system_prompt = _build_system_prompt()
         if not chat_id:
             system_prompt += (
@@ -1071,6 +1090,7 @@ async def chat_stream_handler(req: ChatRequest, user: AuthenticatedUser = Depend
         raise HTTPException(status_code=400, detail="Query cannot be empty")
 
     from src.tools.llm import make_llm
+    from src.tools.smart_search import evaluate_search_intent, execute_smart_search
     from langchain_core.messages import SystemMessage, HumanMessage
 
     (
@@ -1087,9 +1107,6 @@ async def chat_stream_handler(req: ChatRequest, user: AuthenticatedUser = Depend
     if chat_id and chat_history:
         rolling_summary = await maybe_compress_history(user, chat_id, chat_history, rolling_summary)
 
-    prompt_context = build_context_for_prompt(chat_history, rolling_summary, brief_summary, context)
-    user_prompt = f"{prompt_context}\n\nUser Question: {req.query}" if prompt_context else f"User Question: {req.query}"
-
     system_prompt = _build_system_prompt()
     if not chat_id:
         system_prompt += (
@@ -1102,11 +1119,34 @@ async def chat_stream_handler(req: ChatRequest, user: AuthenticatedUser = Depend
             "This title tag must only be included at the very beginning of the response."
         )
 
-    messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]
-
     async def event_generator():
         full_response = ""
         try:
+            loop = asyncio.get_running_loop()
+            
+            # Smart Search Evaluation
+            needs_search = req.enable_search
+            search_query = req.query
+
+            if needs_search is None:
+                intent = await loop.run_in_executor(None, evaluate_search_intent, req.query)
+                needs_search = intent.get("needs_search", False)
+                search_query = intent.get("search_query", req.query)
+
+            grounded_context = ""
+            if needs_search:
+                yield f"data: {json.dumps({'status': f'Searching reports & web for: \"{search_query}\"...'})}\n\n"
+                search_data = await loop.run_in_executor(None, execute_smart_search, search_query, "chat_stream")
+                grounded_context = search_data.get("formatted_context", "")
+
+            prompt_context = build_context_for_prompt(chat_history, rolling_summary, brief_summary, context)
+            if grounded_context:
+                prompt_context = f"{grounded_context}\n\n{prompt_context}" if prompt_context else grounded_context
+
+            user_prompt = f"{prompt_context}\n\nUser Question: {req.query}" if prompt_context else f"User Question: {req.query}"
+
+            messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]
+
             llm = make_llm()
             async for chunk in llm.astream(messages):
                 token = chunk.content

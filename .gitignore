@@ -14,6 +14,15 @@ wheels/
 output/
 .cache/
 
+# Model caches
+.flashrank_cache/
+
+# Pew report PDFs (large binary files — add manually if needed)
+pew_reports/pdfs/
+
+# Agent brain / session artifacts (Antigravity)
+8d5a2a0c-4027-4d3b-9e01-c24b72a8ddc1/
+
 # AI assistant tooling
 .agents/
 

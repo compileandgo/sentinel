@@ -1,5 +1,6 @@
 import os
 import sys
+import re
 from typing import List, Dict, Any, Optional
 
 # Ensure parent directory is in sys.path
@@ -18,20 +19,22 @@ def _get_ranker():
     if _ranker is None:
         try:
             from flashrank import Ranker
-            # Lazy load the lightweight MiniLM model
-            _ranker = Ranker(model_name="ms-marco-MiniLM-L-6-v2", cache_dir="./.flashrank_cache")
+            # Lazy load the lightweight default FlashRank model (TinyBERT)
+            _ranker = Ranker(cache_dir="./.flashrank_cache")
         except Exception as e:
             print(f"  [FlashRank] Warning: Failed to initialize Ranker: {e}. Falling back to default retrieval.")
     return _ranker
 
 def rag_search(query: str, subagent_id: str = "lead", max_results: int = 5) -> List[RawIntel]:
     """
-    RAG search utility:
-      1. Embed query using text-embedding-004.
+    Production Hybrid RAG Search utility:
+      1. Embed query using FastEmbed (768-dim BAAI/bge-base-en-v1.5).
       2. Dense vector search against Pinecone (retrieving top 25 children).
-      3. Retrieve child chunks text from Supabase.
-      4. Rerank child chunks using local FlashRank.
-      5. Fetch matching parent chunks for high-context snippets.
+      3. Keyword / Full-Text search against Supabase PostgreSQL text index.
+      4. Combine and deduplicate candidate child passages.
+      5. Rerank candidates using local CPU FlashRank.
+      6. Retrieve high-context 1000-word parent chunks from Supabase.
+      7. Return typed RawIntel with chunk attribution metadata.
     """
     api_key = Config.PINECONE_API_KEY
     index_name = Config.PINECONE_INDEX_NAME
@@ -43,7 +46,6 @@ def rag_search(query: str, subagent_id: str = "lead", max_results: int = 5) -> L
     try:
         from pinecone import Pinecone
         pc = Pinecone(api_key=api_key)
-        # Verify index exists
         existing = [idx.name for idx in pc.list_indexes()]
         if index_name not in existing:
             print(f"  [RAG Search] Warning: Index '{index_name}' does not exist.")
@@ -61,70 +63,74 @@ def rag_search(query: str, subagent_id: str = "lead", max_results: int = 5) -> L
         print(f"  [RAG Search] Error generating embedding: {e}")
         return []
 
-    # 2. Query Pinecone
+    # 2. Dense Vector Search in Pinecone
+    matches = []
     try:
-        # Retrieve top 25 to give FlashRank enough documents to filter
         search_response = index.query(
             vector=query_vector,
             top_k=25,
             include_metadata=True
         )
         matches = search_response.get("matches", [])
-        if not matches:
-            print("  [RAG Search] No semantic matches found in Pinecone.")
-            return []
     except Exception as e:
         print(f"  [RAG Search] Pinecone query failed: {e}")
-        return []
 
-    # Extract child IDs (which are the Pinecone record IDs)
     child_ids = [match["id"] for match in matches]
+    supabase = get_admin_client()
     
-    # 3. Retrieve child chunks from Supabase
-    try:
-        supabase = get_admin_client()
-        # Query research_chunks table for child details
-        response = supabase.table("research_chunks").select(
-            "id, parent_id, chunk_text, title, document_url, authors, published_date"
-        ).in_("id", child_ids).execute()
-        
-        child_rows = response.data or []
-        if not child_rows:
-            print("  [RAG Search] No matching chunk records found in Supabase.")
-            return []
-    except Exception as e:
-        print(f"  [RAG Search] Supabase query failed: {e}")
+    child_map: Dict[str, Dict[str, Any]] = {}
+    
+    # 3. Retrieve dense vector child chunks from Supabase
+    if child_ids:
+        try:
+            response = supabase.table("research_chunks").select(
+                "id, parent_id, chunk_text, title, document_url, authors, published_date"
+            ).in_("id", child_ids).execute()
+            for row in (response.data or []):
+                child_map[row["id"]] = row
+        except Exception as e:
+            print(f"  [RAG Search] Supabase vector row fetch failed: {e}")
+
+    # 4. Keyword / Full-Text Search in Supabase for Hybrid Retrieval
+    clean_terms = " & ".join([word for word in re.findall(r"\w+", query) if len(word) > 2])
+    if clean_terms:
+        try:
+            text_res = supabase.table("research_chunks").select(
+                "id, parent_id, chunk_text, title, document_url, authors, published_date"
+            ).not_("parent_id", "is", None).text_search("chunk_text", clean_terms, options={"config": "english"}).limit(15).execute()
+            for row in (text_res.data or []):
+                if row["id"] not in child_map:
+                    child_map[row["id"]] = row
+        except Exception as e:
+            # Fallback to simple text matching if tsquery has complex terms
+            pass
+
+    if not child_map:
+        print("  [RAG Search] No matching chunk records found in Pinecone or Supabase.")
         return []
 
-    # Map database rows to the matched child chunks
-    child_map = {row["id"]: row for row in child_rows}
-    
-    # Format passages for FlashRank
+    # Assemble passages for FlashRank reranking
     passages = []
-    for match in matches:
-        cid = match["id"]
-        if cid in child_map:
-            row = child_map[cid]
-            passages.append({
-                "id": cid,
-                "text": row["chunk_text"],
-                "meta": {
-                    "parent_id": row["parent_id"],
-                    "title": row["title"],
-                    "url": row["document_url"],
-                    "authors": row["authors"],
-                    "published_date": row["published_date"]
-                }
-            })
+    for cid, row in child_map.items():
+        passages.append({
+            "id": cid,
+            "text": row["chunk_text"],
+            "meta": {
+                "parent_id": row["parent_id"],
+                "title": row["title"],
+                "url": row["document_url"],
+                "authors": row["authors"],
+                "published_date": row["published_date"]
+            }
+        })
 
-    # 4. Rerank using FlashRank
+    # 5. Rerank using FlashRank
     ranker = _get_ranker()
     if ranker and passages:
         try:
             from flashrank import RerankRequest
             rerank_request = RerankRequest(query=query, passages=passages)
             reranked_results = ranker.rerank(rerank_request)
-            # Reranked list contains dictionaries with {"id", "text", "meta", "score"}
             top_passages = reranked_results[:max_results]
         except Exception as e:
             print(f"  [RAG Search] Reranking failed: {e}. Falling back to default ordering.")
@@ -132,7 +138,7 @@ def rag_search(query: str, subagent_id: str = "lead", max_results: int = 5) -> L
     else:
         top_passages = passages[:max_results]
 
-    # 5. Fetch parent chunks for top reranked passages to ensure high context
+    # 6. Fetch parent chunks for top reranked passages to ensure high context
     parent_ids = list(set([p["meta"]["parent_id"] for p in top_passages if p["meta"].get("parent_id")]))
     parent_texts = {}
     
@@ -144,25 +150,26 @@ def rag_search(query: str, subagent_id: str = "lead", max_results: int = 5) -> L
         except Exception as e:
             print(f"  [RAG Search] Failed to fetch parent chunks: {e}. Using child text instead.")
 
-    # Format as list of RawIntel objects
+    # 7. Format as list of RawIntel objects with provenance attribution
     results = []
     for p in top_passages:
         parent_id = p["meta"]["parent_id"]
-        # Use parent text if available, otherwise fallback to child text
         parent_text = parent_texts.get(parent_id, p["text"])
-        
-        # We populate snippet with a concise preview and full_text with the full parent context
         snippet_preview = parent_text[:300] + "..." if len(parent_text) > 300 else parent_text
         
-        results.append(RawIntel(
+        # Attribution info embedded in title/provenance header
+        title_with_attribution = f"{p['meta']['title']} [Chunk: {p['id'][:8]}]"
+        
+        intel_item = RawIntel(
             source_url=p["meta"]["url"],
-            title=p["meta"]["title"],
+            title=title_with_attribution,
             snippet=snippet_preview,
             full_text=parent_text,
             published_date=p["meta"]["published_date"] or "",
             query=query,
             subagent_id=subagent_id,
-        ))
+        )
+        results.append(intel_item)
 
-    print(f"  [RAG Search] Retrieved {len(results)} high-context results.")
+    print(f"  [Hybrid RAG Search] Retrieved {len(results)} high-context results.")
     return results

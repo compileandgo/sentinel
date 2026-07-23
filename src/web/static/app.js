@@ -1245,11 +1245,13 @@ document.addEventListener("DOMContentLoaded", () => {
                         </svg>
                     </div>
                     <div class="message-content">
+                        <div class="chat-search-status-container" id="stream-status-target"></div>
                         <div class="message-text streaming" id="stream-text-target"></div>
                     </div>
                 `;
                 idleWelcome.appendChild(streamDiv);
                 textTarget = streamDiv.querySelector("#stream-text-target");
+                const statusTarget = streamDiv.querySelector("#stream-status-target");
 
                 // SSE stream reader
                 const reader = res.body.getReader();
@@ -1275,6 +1277,10 @@ document.addEventListener("DOMContentLoaded", () => {
                         if (!event.startsWith("data: ")) continue;
                         let payload;
                         try { payload = JSON.parse(event.slice(6)); } catch { continue; }
+
+                        if (payload.status && statusTarget) {
+                            statusTarget.innerHTML = `<div class="chat-search-status-badge"><span class="status-pulse-dot"></span> ${escHtml(payload.status)}</div>`;
+                        }
 
                         if (payload.error) {
                             textTarget.innerHTML = `${escHtml(formatUserFriendlyError(payload.error))}`;

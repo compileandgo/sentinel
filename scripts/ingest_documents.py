@@ -14,6 +14,8 @@ from src.config import Config
 from src.tools.llm import make_embeddings
 from src.web.db import get_admin_client
 
+import hashlib
+
 def split_by_tokens(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
     words = text.split()
     chunks = []
@@ -113,7 +115,18 @@ def main():
             if not full_text.strip():
                 print(f"  [Warning] No text extracted from {pdf_path.name}")
                 continue
-                
+
+            doc_hash = hashlib.sha256(full_text.encode("utf-8")).hexdigest()
+            
+            # Check deduplication hash
+            try:
+                existing = supabase.table("research_chunks").select("id").eq("content_hash", doc_hash).limit(1).execute()
+                if existing.data:
+                    print(f"  [Skip] Document '{title}' ({pdf_path.name}) is already indexed (content_hash matches).")
+                    continue
+            except Exception as e:
+                print(f"  [Warning] Deduplication check failed: {e}")
+
             # Chunking
             # 1. Split into parent chunks (1000 words, 200 overlap)
             parent_chunks = split_by_tokens(full_text, chunk_size=1000, chunk_overlap=200)
@@ -129,7 +142,8 @@ def main():
                         "authors": authors,
                         "published_date": published_date,
                         "chunk_index": parent_idx,
-                        "chunk_text": parent_text
+                        "chunk_text": parent_text,
+                        "content_hash": doc_hash
                     }).execute()
                     
                     if not parent_res.data:
@@ -168,7 +182,8 @@ def main():
                         "authors": authors,
                         "published_date": published_date,
                         "chunk_index": child_idx,
-                        "chunk_text": child_text
+                        "chunk_text": child_text,
+                        "content_hash": doc_hash
                     })
                     
                     # Store vector for Pinecone

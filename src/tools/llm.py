@@ -261,18 +261,24 @@ def safe_groq_invoke(
     return _clean_response(_try_groq_pool(messages, temperature))
 
 
+class FastEmbedWrapper:
+    def __init__(self, model_name: str = "BAAI/bge-base-en-v1.5"):
+        from fastembed import TextEmbedding
+        self.model = TextEmbedding(model_name=model_name)
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        embeddings = list(self.model.embed(texts))
+        return [e.tolist() for e in embeddings]
+
+    def embed_query(self, text: str) -> List[float]:
+        embeddings = list(self.model.embed([text]))
+        return embeddings[0].tolist()
+
+_embeddings_singleton = None
+
 def make_embeddings():
-    """Instantiate GoogleGenerativeEmbeddings using the first non-exhausted key in the pool."""
-    from langchain_google_genai import GoogleGenerativeEmbeddings
-    for key in Config.GOOGLE_API_KEYS:
-        if not _gemini_exhausted.get(key):
-            return GoogleGenerativeEmbeddings(
-                model="models/text-embedding-004",
-                google_api_key=key,
-            )
-    # Fallback to default
-    key = Config.GOOGLE_API_KEYS[0] if Config.GOOGLE_API_KEYS else os.getenv("GOOGLE_API_KEY", "")
-    return GoogleGenerativeEmbeddings(
-        model="models/text-embedding-004",
-        google_api_key=key,
-    )
+    """Returns a local CPU FastEmbed instance (768 dimensions, BAAI/bge-base-en-v1.5)."""
+    global _embeddings_singleton
+    if _embeddings_singleton is None:
+        _embeddings_singleton = FastEmbedWrapper("BAAI/bge-base-en-v1.5")
+    return _embeddings_singleton

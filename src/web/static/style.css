@@ -3664,3 +3664,45 @@ body.light-theme {
 .app-container:has(#research-viewer:not(.collapsed)) .chat-top-gradient {
     display: none !important;
 }
+
+/* ── Smart Search Status Badge ──────────────────────────────────────────────── */
+.chat-search-status-container {
+    margin-bottom: 8px;
+}
+
+.chat-search-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--gemini-blue, #4e88f5);
+    background: rgba(78, 136, 245, 0.08);
+    border: 1px solid rgba(78, 136, 245, 0.2);
+    border-radius: 16px;
+    backdrop-filter: blur(8px);
+    transition: all 0.2s ease-in-out;
+}
+
+.status-pulse-dot {
+    width: 7px;
+    height: 7px;
+    background-color: var(--gemini-blue, #4e88f5);
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 0 rgba(78, 136, 245, 0.4);
+    animation: statusPulse 1.4s infinite;
+}
+
+@keyframes statusPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(78, 136, 245, 0.6);
+    }
+    70% {
+        box-shadow: 0 0 0 8px rgba(78, 136, 245, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(78, 136, 245, 0);
+    }
+}
