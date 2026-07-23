@@ -893,6 +893,7 @@ class ChatRequest(BaseModel):
     query: str
     brief_filename: Optional[str] = None
     new_session: Optional[bool] = False
+    enable_search: Optional[bool] = None
 
 def _build_system_prompt() -> str:
     return (
@@ -1035,7 +1036,7 @@ async def chat_handler(req: ChatRequest, user: AuthenticatedUser = Depends(get_c
     loop = asyncio.get_running_loop()
 
     # Smart Search Evaluation
-    needs_search = req.enable_search
+    needs_search = getattr(req, "enable_search", None)
     search_query = req.query
 
     if needs_search is None:
@@ -1125,7 +1126,7 @@ async def chat_stream_handler(req: ChatRequest, user: AuthenticatedUser = Depend
             loop = asyncio.get_running_loop()
             
             # Smart Search Evaluation
-            needs_search = req.enable_search
+            needs_search = getattr(req, "enable_search", None)
             search_query = req.query
 
             if needs_search is None:
