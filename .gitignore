@@ -17,6 +17,7 @@ output/
 # Model caches
 .flashrank_cache/
 .fastembed_cache/
+.bm25_cache/
 
 # Pew report PDFs (large binary files — add manually if needed)
 pew_reports/pdfs/

@@ -22,4 +22,5 @@ dependencies = [
     "flashrank>=0.2.8",
     "pinecone>=5.0.0",
     "fastembed>=0.3.0",
+    "pinecone-text>=0.11.0",
 ]

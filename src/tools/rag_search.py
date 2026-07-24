@@ -1,7 +1,6 @@
 import os
 import sys
-import re
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 
 # Ensure parent directory is in sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -11,38 +10,80 @@ from src.agent.state import RawIntel
 from src.tools.llm import make_embeddings
 from src.web.db import get_admin_client
 
-# Global Ranker instance for lazy-loaded singleton to optimize memory/speed
+# ── Singletons ────────────────────────────────────────────────────────────────
 _ranker = None
+_bm25_encoder = None
 
 def _get_ranker():
     global _ranker
     if _ranker is None:
         try:
             from flashrank import Ranker
-            # Lazy load the lightweight default FlashRank model (TinyBERT)
             _ranker = Ranker(cache_dir="./.flashrank_cache")
         except Exception as e:
-            print(f"  [FlashRank] Warning: Failed to initialize Ranker: {e}. Falling back to default retrieval.")
+            print(f"  [FlashRank] Warning: Failed to initialize Ranker: {e}.")
     return _ranker
+
+
+def _get_bm25_encoder():
+    """Lazy-load the fitted BM25Encoder from .bm25_cache/bm25_encoder.json."""
+    global _bm25_encoder
+    if _bm25_encoder is not None:
+        return _bm25_encoder
+    try:
+        from pinecone_text.sparse import BM25Encoder
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        bm25_path = os.path.join(project_root, ".bm25_cache", "bm25_encoder.json")
+        if os.path.exists(bm25_path):
+            enc = BM25Encoder()
+            enc.load(bm25_path)
+            _bm25_encoder = enc
+            print("  [BM25] Loaded fitted BM25Encoder from .bm25_cache/")
+        else:
+            print("  [BM25] bm25_encoder.json not found — run scripts/fit_bm25.py to enable sparse retrieval.")
+    except Exception as e:
+        print(f"  [BM25] Could not load BM25Encoder: {e}")
+    return _bm25_encoder
+
+
+def _rrf_fuse(dense: list, sparse: list, k: int = 60) -> list:
+    """
+    Reciprocal Rank Fusion.
+    Merges two ranked lists into a single ranking.
+    RRF score = Σ  1 / (k + rank_i)  across all lists chunk appears in.
+    Chunks appearing in BOTH lists get a compounded boost.
+    k=60 is the standard constant (Robertson et al., 2009).
+    """
+    scores: Dict[str, float] = {}
+    for rank, match in enumerate(dense):
+        cid = match["id"]
+        scores[cid] = scores.get(cid, 0.0) + 1.0 / (k + rank + 1)
+    for rank, match in enumerate(sparse):
+        cid = match["id"]
+        scores[cid] = scores.get(cid, 0.0) + 1.0 / (k + rank + 1)
+    return sorted(scores.items(), key=lambda x: x[1], reverse=True)
+
 
 def rag_search(query: str, subagent_id: str = "lead", max_results: int = 5) -> List[RawIntel]:
     """
-    Production Hybrid RAG Search utility:
-      1. Embed query using FastEmbed (768-dim BAAI/bge-base-en-v1.5).
-      2. Dense vector search against Pinecone (retrieving top 25 children).
-      3. Keyword / Full-Text search against Supabase PostgreSQL text index.
-      4. Combine and deduplicate candidate child passages.
-      5. Rerank candidates using local CPU FlashRank.
-      6. Retrieve high-context 1000-word parent chunks from Supabase.
-      7. Return typed RawIntel with chunk attribution metadata.
+    Production Hybrid RAG Search:
+      1. Dense embedding (BGE bi-encoder, 768-dim).
+      2. BM25 sparse encoding (pinecone-text BM25Encoder, corpus-fitted IDF).
+      3. Two independent Pinecone queries — dense top-25, sparse top-25.
+      4. Reciprocal Rank Fusion (RRF, k=60) merges both ranked lists.
+         Chunks appearing in BOTH channels get a compounded score boost.
+      5. Cross-encoder reranking (FlashRank / ms-marco-TinyBERT-L-2-v2).
+      6. Parent Document Retrieval — swap child snippets for 1000-word parents.
+      7. Return typed RawIntel objects with full provenance metadata.
     """
     api_key = Config.PINECONE_API_KEY
     index_name = Config.PINECONE_INDEX_NAME
-    
+
     if not api_key:
         print("  [RAG Search] Warning: PINECONE_API_KEY is not configured.")
         return []
-        
+
+    # ── Pinecone client ───────────────────────────────────────────────────────
     try:
         from pinecone import Pinecone
         pc = Pinecone(api_key=api_key)
@@ -55,63 +96,73 @@ def rag_search(query: str, subagent_id: str = "lead", max_results: int = 5) -> L
         print(f"  [RAG Search] Error initializing Pinecone: {e}")
         return []
 
-    # 1. Embed query
+    # ── Step 1: Dense embedding ───────────────────────────────────────────────
     try:
-        embeddings_model = make_embeddings()
-        query_vector = embeddings_model.embed_query(query)
+        query_vector = make_embeddings().embed_query(query)
     except Exception as e:
         print(f"  [RAG Search] Error generating embedding: {e}")
         return []
 
-    # 2. Dense Vector Search in Pinecone
-    matches = []
+    # ── Step 2: BM25 sparse encoding ─────────────────────────────────────────
+    encoder = _get_bm25_encoder()
+    sparse_vector = None
+    if encoder:
+        try:
+            sparse_vector = encoder.encode_queries(query)
+        except Exception as e:
+            print(f"  [RAG Search] BM25 encode failed: {e}")
+
+    # ── Step 3: Pinecone queries — dense and sparse independently ─────────────
+    dense_matches = []
+    sparse_matches = []
+
     try:
-        search_response = index.query(
-            vector=query_vector,
-            top_k=25,
-            include_metadata=True
-        )
-        matches = search_response.get("matches", [])
+        resp = index.query(vector=query_vector, top_k=25, include_metadata=True)
+        dense_matches = resp.get("matches", [])
     except Exception as e:
-        print(f"  [RAG Search] Pinecone query failed: {e}")
+        print(f"  [RAG Search] Dense Pinecone query failed: {e}")
 
-    child_ids = [match["id"] for match in matches]
-    supabase = get_admin_client()
-    
-    child_map: Dict[str, Dict[str, Any]] = {}
-    
-    # 3. Retrieve dense vector child chunks from Supabase
-    if child_ids:
+    if sparse_vector:
         try:
-            response = supabase.table("research_chunks").select(
-                "id, parent_id, chunk_text, title, document_url, authors, published_date"
-            ).in_("id", child_ids).execute()
-            for row in (response.data or []):
-                child_map[row["id"]] = row
+            resp = index.query(sparse_vector=sparse_vector, top_k=25, include_metadata=True)
+            sparse_matches = resp.get("matches", [])
         except Exception as e:
-            print(f"  [RAG Search] Supabase vector row fetch failed: {e}")
+            print(f"  [RAG Search] Sparse Pinecone query failed (dense-only fallback): {e}")
 
-    # 4. Keyword / Full-Text Search in Supabase for Hybrid Retrieval
-    clean_terms = " & ".join([word for word in re.findall(r"\w+", query) if len(word) > 2])
-    if clean_terms:
-        try:
-            text_res = supabase.table("research_chunks").select(
-                "id, parent_id, chunk_text, title, document_url, authors, published_date"
-            ).not_("parent_id", "is", None).text_search("chunk_text", clean_terms, options={"config": "english"}).limit(15).execute()
-            for row in (text_res.data or []):
-                if row["id"] not in child_map:
-                    child_map[row["id"]] = row
-        except Exception as e:
-            # Fallback to simple text matching if tsquery has complex terms
-            pass
+    # ── Step 4: Reciprocal Rank Fusion ────────────────────────────────────────
+    rrf_ranked = _rrf_fuse(dense_matches, sparse_matches)
+    fused_ids = [cid for cid, _ in rrf_ranked[:40]]   # generous pre-rerank budget
 
-    if not child_map:
-        print("  [RAG Search] No matching chunk records found in Pinecone or Supabase.")
+    if not fused_ids:
+        print("  [RAG Search] No results from Pinecone.")
         return []
 
-    # Assemble passages for FlashRank reranking
+    bm25_active = bool(sparse_vector and sparse_matches)
+    print(f"  [RAG Search] RRF fused {len(fused_ids)} candidates "
+          f"({'BM25+Dense' if bm25_active else 'Dense-only — run fit_bm25.py to activate BM25'}).")
+
+    # ── Step 5: Fetch chunk texts from Supabase ───────────────────────────────
+    supabase = get_admin_client()
+    child_map: Dict[str, Dict[str, Any]] = {}
+    try:
+        resp = supabase.table("research_chunks").select(
+            "id, parent_id, chunk_text, title, document_url, authors, published_date"
+        ).in_("id", fused_ids).execute()
+        for row in (resp.data or []):
+            child_map[row["id"]] = row
+    except Exception as e:
+        print(f"  [RAG Search] Supabase chunk fetch failed: {e}")
+
+    if not child_map:
+        print("  [RAG Search] No chunk records found in Supabase for fused IDs.")
+        return []
+
+    # Preserve RRF order for initial passage list fed into reranker
     passages = []
-    for cid, row in child_map.items():
+    for cid in fused_ids:
+        row = child_map.get(cid)
+        if not row:
+            continue
         passages.append({
             "id": cid,
             "text": row["chunk_text"],
@@ -120,56 +171,49 @@ def rag_search(query: str, subagent_id: str = "lead", max_results: int = 5) -> L
                 "title": row["title"],
                 "url": row["document_url"],
                 "authors": row["authors"],
-                "published_date": row["published_date"]
+                "published_date": row["published_date"],
             }
         })
 
-    # 5. Rerank using FlashRank
+    # ── Step 6: Cross-encoder reranking (FlashRank) ───────────────────────────
     ranker = _get_ranker()
     if ranker and passages:
         try:
             from flashrank import RerankRequest
-            rerank_request = RerankRequest(query=query, passages=passages)
-            reranked_results = ranker.rerank(rerank_request)
-            top_passages = reranked_results[:max_results]
+            reranked = ranker.rerank(RerankRequest(query=query, passages=passages))
+            top_passages = reranked[:max_results]
         except Exception as e:
-            print(f"  [RAG Search] Reranking failed: {e}. Falling back to default ordering.")
+            print(f"  [RAG Search] Reranking failed: {e}. Using RRF order.")
             top_passages = passages[:max_results]
     else:
         top_passages = passages[:max_results]
 
-    # 6. Fetch parent chunks for top reranked passages to ensure high context
-    parent_ids = list(set([p["meta"]["parent_id"] for p in top_passages if p["meta"].get("parent_id")]))
-    parent_texts = {}
-    
+    # ── Step 7: Parent Document Retrieval (Small-to-Big) ─────────────────────
+    parent_ids = list({p["meta"]["parent_id"] for p in top_passages if p["meta"].get("parent_id")})
+    parent_texts: Dict[str, str] = {}
     if parent_ids:
         try:
-            parent_response = supabase.table("research_chunks").select("id, chunk_text").in_("id", parent_ids).execute()
-            for row in (parent_response.data or []):
+            pr = supabase.table("research_chunks").select("id, chunk_text").in_("id", parent_ids).execute()
+            for row in (pr.data or []):
                 parent_texts[row["id"]] = row["chunk_text"]
         except Exception as e:
-            print(f"  [RAG Search] Failed to fetch parent chunks: {e}. Using child text instead.")
+            print(f"  [RAG Search] Parent chunk fetch failed: {e}. Using child text.")
 
-    # 7. Format as list of RawIntel objects with provenance attribution
+    # ── Step 8: Build RawIntel results ───────────────────────────────────────
     results = []
     for p in top_passages:
-        parent_id = p["meta"]["parent_id"]
-        parent_text = parent_texts.get(parent_id, p["text"])
-        snippet_preview = parent_text[:300] + "..." if len(parent_text) > 300 else parent_text
-        
-        # Attribution info embedded in title/provenance header
-        title_with_attribution = f"{p['meta']['title']} [Chunk: {p['id'][:8]}]"
-        
-        intel_item = RawIntel(
+        pid = p["meta"]["parent_id"]
+        full_text = parent_texts.get(pid, p["text"])
+        snippet = full_text[:300] + "..." if len(full_text) > 300 else full_text
+        results.append(RawIntel(
             source_url=p["meta"]["url"],
-            title=title_with_attribution,
-            snippet=snippet_preview,
-            full_text=parent_text,
+            title=f"{p['meta']['title']} [Chunk: {p['id'][:8]}]",
+            snippet=snippet,
+            full_text=full_text,
             published_date=p["meta"]["published_date"] or "",
             query=query,
             subagent_id=subagent_id,
-        )
-        results.append(intel_item)
+        ))
 
-    print(f"  [Hybrid RAG Search] Retrieved {len(results)} high-context results.")
+    print(f"  [Hybrid RAG] Returned {len(results)} high-context results.")
     return results

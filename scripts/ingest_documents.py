@@ -65,11 +65,26 @@ def main():
     except Exception as e:
         print(f"Error getting Pinecone index {index_name}: {e}. Run setup_pinecone.py first.")
         sys.exit(1)
-        
+
     supabase = get_admin_client()
-    
-    # Make embeddings model
+
+    # Make dense embeddings model
     embeddings_model = make_embeddings()
+
+    # Load BM25 encoder if fitted — enables sparse vectors in Pinecone
+    bm25_encoder = None
+    try:
+        from pinecone_text.sparse import BM25Encoder
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        bm25_path = os.path.join(project_root, ".bm25_cache", "bm25_encoder.json")
+        if os.path.exists(bm25_path):
+            bm25_encoder = BM25Encoder()
+            bm25_encoder.load(bm25_path)
+            print("BM25Encoder loaded — sparse vectors will be included in Pinecone upsert.")
+        else:
+            print("BM25 encoder not found (.bm25_cache/bm25_encoder.json). Run scripts/fit_bm25.py after ingestion.")
+    except Exception as e:
+        print(f"BM25Encoder load skipped: {e}")
     
     meta_path = Path(args.metadata)
     if not meta_path.exists():
@@ -160,19 +175,27 @@ def main():
                 if not child_chunks:
                     continue
                 
-                # Generate embeddings for all children of this parent
+                # Generate dense embeddings for all children of this parent
                 try:
                     child_embeddings = embeddings_model.embed_documents(child_chunks)
                 except Exception as e:
                     print(f"    Error generating embeddings for children of parent {parent_idx}: {e}")
                     continue
-                
+
+                # Generate BM25 sparse vectors if encoder is available
+                sparse_vectors = [None] * len(child_chunks)
+                if bm25_encoder:
+                    try:
+                        sparse_vectors = bm25_encoder.encode_documents(child_chunks)
+                    except Exception as e:
+                        print(f"    BM25 sparse encoding failed for parent {parent_idx}: {e}")
+
                 pinecone_vectors = []
                 supabase_rows = []
-                
+
                 for child_idx, (child_text, child_emb) in enumerate(zip(child_chunks, child_embeddings)):
                     child_uuid = str(uuid.uuid4())
-                    
+
                     # Store row for Supabase child
                     supabase_rows.append({
                         "id": child_uuid,
@@ -185,9 +208,9 @@ def main():
                         "chunk_text": child_text,
                         "content_hash": doc_hash
                     })
-                    
-                    # Store vector for Pinecone
-                    pinecone_vectors.append({
+
+                    # Build Pinecone vector record (dense + optional sparse)
+                    vec_record = {
                         "id": child_uuid,
                         "values": child_emb,
                         "metadata": {
@@ -195,7 +218,11 @@ def main():
                             "title": title,
                             "url": url
                         }
-                    })
+                    }
+                    sv = sparse_vectors[child_idx] if sparse_vectors[child_idx] else None
+                    if sv:
+                        vec_record["sparse_values"] = sv
+                    pinecone_vectors.append(vec_record)
                 
                 # Bulk insert to Supabase
                 try:
