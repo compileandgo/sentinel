@@ -17,8 +17,6 @@ class VoiceController {
         this.speakingUtterance = null;
         this.currentSpeed = 1.0;
         this.audioContext = null;
-        this.analyser = null;
-        this.animFrameId = null;
 
         this.initElements();
         this.initSpeechRecognition();
@@ -26,7 +24,11 @@ class VoiceController {
 
     initElements() {
         this.micBtn = document.getElementById('mic-btn');
-        this.inputBox = document.getElementById('chat-input') || document.getElementById('user-input') || document.querySelector('textarea, input[type="text"]');
+        this.inputBox = document.getElementById('topic-input') || document.getElementById('chat-input') || document.querySelector('textarea');
+    }
+
+    getInputElement() {
+        return document.getElementById('topic-input') || document.getElementById('chat-input') || document.querySelector('textarea');
     }
 
     initSpeechRecognition() {
@@ -49,12 +51,13 @@ class VoiceController {
                     }
                 }
 
-                const inputEl = document.getElementById('chat-input');
+                const inputEl = this.getInputElement();
                 if (inputEl) {
                     if (finalTranscript) {
-                        inputEl.value = (inputEl.value + ' ' + finalTranscript).trim();
+                        inputEl.value = (inputEl.value ? inputEl.value + ' ' : '') + finalTranscript;
+                        // Trigger input event to adjust textarea height if needed
+                        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
                     } else if (interimTranscript) {
-                        // Show interim in input box
                         inputEl.placeholder = "Listening: " + interimTranscript;
                     }
                 }
@@ -83,7 +86,7 @@ class VoiceController {
     }
 
     async startRecording() {
-        const inputEl = document.getElementById('chat-input');
+        const inputEl = this.getInputElement();
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: {
@@ -110,6 +113,7 @@ class VoiceController {
             this.mediaRecorder.start(250);
             this.isRecording = true;
 
+            this.micBtn = document.getElementById('mic-btn');
             if (this.micBtn) {
                 this.micBtn.classList.add('recording');
                 this.micBtn.setAttribute('title', 'Click to stop recording');
@@ -136,14 +140,15 @@ class VoiceController {
 
         if (this.silenceTimer) clearTimeout(this.silenceTimer);
 
+        this.micBtn = document.getElementById('mic-btn');
         if (this.micBtn) {
             this.micBtn.classList.remove('recording');
             this.micBtn.setAttribute('title', 'Voice input');
         }
 
-        const inputEl = document.getElementById('chat-input');
+        const inputEl = this.getInputElement();
         if (inputEl) {
-            inputEl.placeholder = "Ask Sentinel anything or type /for deep-research...";
+            inputEl.placeholder = "Ask Sentinel to research...";
         }
 
         if (this.recognition) {
@@ -178,8 +183,8 @@ class VoiceController {
         const headers = {};
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
+        const inputEl = this.getInputElement();
         try {
-            const inputEl = document.getElementById('chat-input');
             if (inputEl) inputEl.placeholder = "Refining transcription with Whisper-v3...";
 
             const res = await fetch('/api/voice/stt', {
@@ -193,6 +198,7 @@ class VoiceController {
                 if (data.text && data.text.trim()) {
                     if (inputEl) {
                         inputEl.value = data.text.trim();
+                        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
                         inputEl.focus();
                     }
                 }
@@ -200,9 +206,8 @@ class VoiceController {
         } catch (e) {
             console.error('[Voice STT Error]', e);
         } finally {
-            const inputEl = document.getElementById('chat-input');
             if (inputEl) {
-                inputEl.placeholder = "Ask Sentinel anything or type /for deep-research...";
+                inputEl.placeholder = "Ask Sentinel to research...";
             }
         }
     }
