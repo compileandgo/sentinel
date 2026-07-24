@@ -462,6 +462,7 @@ document.addEventListener("DOMContentLoaded", () => {
         options.headers["Authorization"] = `Bearer ${session.access_token}`;
         return fetch(url, options);
     }
+    window.authFetch = authFetch;
 
     function showUpdatePasswordForm() {
         const authContainer = document.getElementById("auth-container");
@@ -2702,6 +2703,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
                 </svg>
             </button>
+            <button class="chat-action-icon-btn speak-btn" title="Read Aloud">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                </svg>
+            </button>
             <button class="chat-action-icon-btn more-options-btn" title="More options">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="1"></circle>
@@ -2725,9 +2732,19 @@ document.addEventListener("DOMContentLoaded", () => {
         const upBtn = actionsRow.querySelector(".thumbs-up");
         const downBtn = actionsRow.querySelector(".thumbs-down");
         const copyBtn = actionsRow.querySelector(".copy-btn");
+        const speakBtn = actionsRow.querySelector(".speak-btn");
         const moreBtn = actionsRow.querySelector(".more-options-btn");
         const menu = actionsRow.querySelector(".chat-actions-menu");
         const exportBtn = actionsRow.querySelector(".export-btn");
+
+        if (speakBtn) {
+            speakBtn.onclick = (e) => {
+                e.stopPropagation();
+                if (window.sentinelVoice) {
+                    window.sentinelVoice.speakText(textContent, speakBtn);
+                }
+            };
+        }
 
         upBtn.onclick = (e) => {
             e.stopPropagation();

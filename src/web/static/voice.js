@@ -162,12 +162,12 @@ class VoiceController {
 
     resetSilenceTimer() {
         if (this.silenceTimer) clearTimeout(this.silenceTimer);
-        // Auto-stop after 3 seconds of silence
+        // Auto-stop after 7 seconds of silence (increased for better UX)
         this.silenceTimer = setTimeout(() => {
             if (this.isRecording) {
                 this.stopRecording();
             }
-        }, 3000);
+        }, 7000);
     }
 
     async processAudioRecording() {
@@ -179,19 +179,38 @@ class VoiceController {
         const formData = new FormData();
         formData.append('file', audioBlob, 'speech.webm');
 
-        const token = localStorage.getItem('sentinel_token');
-        const headers = {};
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-
         const inputEl = this.getInputElement();
         try {
             if (inputEl) inputEl.placeholder = "Refining transcription with Whisper-v3...";
 
-            const res = await fetch('/api/voice/stt', {
-                method: 'POST',
-                headers: headers,
-                body: formData
-            });
+            let res;
+            if (window.authFetch) {
+                res = await window.authFetch('/api/voice/stt', {
+                    method: 'POST',
+                    body: formData
+                });
+            } else {
+                let token = null;
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && (key.includes('supabase') || key.startsWith('sb-')) && key.includes('auth-token')) {
+                        try {
+                            const parsed = JSON.parse(localStorage.getItem(key));
+                            if (parsed && (parsed.access_token || (parsed.currentSession && parsed.currentSession.access_token))) {
+                                token = parsed.access_token || parsed.currentSession.access_token;
+                                break;
+                            }
+                        } catch (e) {}
+                    }
+                }
+                const headers = {};
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+                res = await fetch('/api/voice/stt', {
+                    method: 'POST',
+                    headers: headers,
+                    body: formData
+                });
+            }
 
             if (res.ok) {
                 const data = await res.json();
@@ -202,6 +221,8 @@ class VoiceController {
                         inputEl.focus();
                     }
                 }
+            } else {
+                console.error('[Voice STT Error]', res.status, res.statusText);
             }
         } catch (e) {
             console.error('[Voice STT Error]', e);
