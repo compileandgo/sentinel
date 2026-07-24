@@ -39,6 +39,14 @@ from src.web.db import (
     db_update_chat_memory
 )
 
+from src.core.redis_state import (
+    set_run_state, get_run_state, publish_run_event,
+    subscribe_run_events, mark_run_cancelled, is_run_cancelled,
+    set_run_approval, is_run_approved
+)
+from src.core.rate_limiter import enforce_rate_limit
+from src.tools.qa_cache import check_semantic_cache, save_semantic_cache
+
 app = FastAPI(title="Sentinel Geopolitical Intelligence Workspace")
 
 # Global dict of active runs
@@ -150,19 +158,17 @@ def run_agent_in_thread(run_id: str, chat_id: str, topic: str, max_iterations: i
         "final_report": "",
     }
 
-    # Setup stdout capture to queue
+    # Setup stdout capture to queue & Redis Pub/Sub
     def log_callback(message):
-        # Push to async queue safely from thread
-        loop.call_soon_threadsafe(
-            queue.put_nowait,
-            {
-                "type": "log",
-                "data": {
-                    "message": message,
-                    "timestamp": datetime.datetime.now().strftime("%H:%M:%S")
-                }
+        evt = {
+            "type": "log",
+            "data": {
+                "message": message,
+                "timestamp": datetime.datetime.now().strftime("%H:%M:%S")
             }
-        )
+        }
+        loop.call_soon_threadsafe(queue.put_nowait, evt)
+        asyncio.run_coroutine_threadsafe(publish_run_event(run_id, evt), loop)
 
     redirector = StdoutRedirector(log_callback)
     original_stdout = sys.stdout
@@ -179,16 +185,15 @@ def run_agent_in_thread(run_id: str, chat_id: str, topic: str, max_iterations: i
 
             # event keys represent completed node names
             for node_name, node_output in event.items():
-                loop.call_soon_threadsafe(
-                    queue.put_nowait,
-                    {
-                        "type": "status",
-                        "data": {
-                            "node": node_name,
-                            "status": "completed"
-                        }
+                status_evt = {
+                    "type": "status",
+                    "data": {
+                        "node": node_name,
+                        "status": "completed"
                     }
-                )
+                }
+                loop.call_soon_threadsafe(queue.put_nowait, status_evt)
+                asyncio.run_coroutine_threadsafe(publish_run_event(run_id, status_evt), loop)
 
                 # Extract update statistics
                 intel_added = 0
@@ -202,105 +207,101 @@ def run_agent_in_thread(run_id: str, chat_id: str, topic: str, max_iterations: i
                         final_report = node_output["final_report"]
 
                 if intel_added or bias_added or chron_added:
-                    loop.call_soon_threadsafe(
-                        queue.put_nowait,
-                        {
-                            "type": "data",
-                            "data": {
-                                "node": node_name,
-                                "intel_added": intel_added,
-                                "bias_added": bias_added,
-                                "chron_added": chron_added
-                            }
+                    data_evt = {
+                        "type": "data",
+                        "data": {
+                            "node": node_name,
+                            "intel_added": intel_added,
+                            "bias_added": bias_added,
+                            "chron_added": chron_added
                         }
-                    )
+                    }
+                    loop.call_soon_threadsafe(queue.put_nowait, data_evt)
+                    asyncio.run_coroutine_threadsafe(publish_run_event(run_id, data_evt), loop)
 
                 # If lead_researcher finished on the first iteration, emit plan_ready and wait!
                 if node_name == "lead_researcher" and isinstance(node_output, dict):
                     iterations = node_output.get("iterations", 0)
                     if iterations == 1:
-                        tasks = []
-                        for task in node_output.get("subagent_tasks", []):
-                            tasks.append({
-                                "subagent_id": task.get("subagent_id"),
-                                "topic": task.get("topic"),
-                                "task": task.get("task")
-                            })
+                        plan_path = node_output.get("plan_path", "")
+                        plan_text = ""
+                        if plan_path and Path(plan_path).exists():
+                            plan_text = Path(plan_path).read_text(encoding="utf-8")
                         
-                        loop.call_soon_threadsafe(
-                            queue.put_nowait,
-                            {
-                                "type": "plan_ready",
-                                "data": {
-                                    "run_id": run_id,
-                                    "topic": topic,
-                                    "tasks": tasks
-                                }
+                        plan_evt = {
+                            "type": "plan_ready",
+                            "data": {
+                                "plan_path": plan_path,
+                                "plan_content": plan_text,
+                                "message": "Research Plan generated. Waiting for user approval."
                             }
-                        )
+                        }
+                        loop.call_soon_threadsafe(queue.put_nowait, plan_evt)
+                        asyncio.run_coroutine_threadsafe(publish_run_event(run_id, plan_evt), loop)
                         
-                        # Wait on the thread event
-                        print(f"   [Thread:{run_id}] Pausing execution after Lead Researcher to wait for plan approval...")
+                        print(f"   [Thread:{run_id}] Pausing for user approval on research plan...")
                         resume_event = active_resumes.get(run_id)
                         if resume_event:
-                            resume_event.wait()
-                        print(f"   [Thread:{run_id}] Plan approved or cancelled. Resuming...")
+                            resume_event.clear()
+                            resume_event.wait() # Block thread until user clicks 'Proceed' or 'Cancel'
+                        print(f"   [Thread:{run_id}] Resumed after user approval/cancellation.")
+
+        # If cancelled midway
+        if run_id in active_cancellations:
+            print(f"   [Thread:{run_id}] Research run marked cancelled.")
+            run_data = active_runs.get(run_id, {})
+            run_data["status"] = "cancelled"
+            cancel_evt = {
+                "type": "cancelled",
+                "data": {
+                    "message": "Research cancelled by user."
+                }
+            }
+            loop.call_soon_threadsafe(queue.put_nowait, cancel_evt)
+            asyncio.run_coroutine_threadsafe(publish_run_event(run_id, cancel_evt), loop)
+            return
+
+        # Success path
+        run_data = active_runs.get(run_id, {})
+        run_data["status"] = "completed"
+        run_data["final_report"] = final_report
+
+        # Save brief report to database and user history
+        brief_filename = f"{run_id}.md"
+        try:
+            topic_str = run_data.get("topic", "Research Report")
+            chat_id = run_data.get("chat_id")
+            db_save_brief_admin(brief_filename, topic_str, final_report, chat_id=chat_id)
+        except Exception as e:
+            print(f"   [Thread:{run_id}] Failed to save brief to database: {e}")
+
+        complete_evt = {
+            "type": "complete",
+            "data": {
+                "report": final_report,
+                "brief_filename": brief_filename
+            }
+        }
+        loop.call_soon_threadsafe(queue.put_nowait, complete_evt)
+        asyncio.run_coroutine_threadsafe(publish_run_event(run_id, complete_evt), loop)
+        print(f"   [Thread:{run_id}] Research run completed successfully.")
 
     except Exception as e:
         import traceback
-        trace = traceback.format_exc()
-        if run_id not in active_cancellations:
-            loop.call_soon_threadsafe(
-                queue.put_nowait,
-                {"type": "error", "data": {"error": str(e), "trace": trace}}
-            )
+        err_msg = f"Workflow execution error: {e}"
+        print(f"   [Thread:{run_id}] Error: {err_msg}")
+        err_evt = {
+            "type": "error",
+            "data": {
+                "error": err_msg,
+                "trace": traceback.format_exc()
+            }
+        }
+        loop.call_soon_threadsafe(queue.put_nowait, err_evt)
+        asyncio.run_coroutine_threadsafe(publish_run_event(run_id, err_evt), loop)
     finally:
         sys.stdout = original_stdout
-        # Clean up resume event
         active_resumes.pop(run_id, None)
-        # Update run outcomes
-        run_data = active_runs.get(run_id, {})
-        is_cancelled = run_id in active_cancellations
-        
-        if is_cancelled:
-            run_data["status"] = "cancelled"
-            loop.call_soon_threadsafe(
-                queue.put_nowait,
-                {
-                    "type": "cancelled",
-                    "data": {
-                        "message": "Research cancelled by user."
-                    }
-                }
-            )
-            # Remove from cancellation tracking set
-            active_cancellations.discard(run_id)
-        else:
-            run_data["status"] = "failed" if "error" in run_data else "completed"
-            if final_report:
-                run_data["final_report"] = final_report
-                
-                # Save completed research to Supabase Database
-                try:
-                    # Create unique slug for filename mapping
-                    clean_topic = re.sub(r'[^a-zA-Z0-9\s-]', '', topic).strip()
-                    clean_topic = re.sub(r'[\s-]+', '-', clean_topic).lower()
-                    clean_topic = clean_topic[:40].strip("-")
-                    if not clean_topic:
-                        clean_topic = "research"
-                    filename = f"research-{clean_topic}-{chat_id[:6]}.md"
-                    
-                    db_title = topic
-                    title_match = re.search(r'<title>([\s\S]*?)</title>', final_report, re.IGNORECASE)
-                    if title_match:
-                        db_title = title_match.group(1).strip()
-                    db_save_brief_admin(chat_id, db_title, final_report, filename)
-                    db_save_message_admin(chat_id, "assistant", final_report, "brief")
-                    print(f"   [Thread:{run_id}] Brief saved to Supabase successfully.")
-                except Exception as e:
-                    print(f"   [Thread:{run_id}] Failed to save brief to Supabase: {e}")
-                    
-            loop.call_soon_threadsafe(queue.put_nowait, {"type": "complete", "data": {"final_report": final_report}})
 
 
 @app.get("/favicon.ico", include_in_schema=False)
@@ -358,23 +359,8 @@ async def get_web_config():
 
 @app.post("/api/research")
 async def start_research(req: ResearchRequest, user: AuthenticatedUser = Depends(get_current_user)):
+    await enforce_rate_limit(user.user_id, "research_run", limit=10, window_seconds=86400)
     topic_clean = req.topic.strip()
-
-    if not topic_clean:
-        raise HTTPException(status_code=400, detail="Topic cannot be empty.")
-
-    # Block greetings and trivial inputs
-    if _TRIVIAL_PATTERN.match(topic_clean):
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Sentinel is a deep research platform and cannot respond to greetings or "
-                "general conversation. Please enter a specific research topic (e.g. "
-                "'AI chip supply chain risks', 'India semiconductor policy 2025')."
-            )
-        )
-
-    # Block very short queries (< 10 chars)
     if len(topic_clean) < 10:
         raise HTTPException(
             status_code=400,
@@ -385,7 +371,7 @@ async def start_research(req: ResearchRequest, user: AuthenticatedUser = Depends
         )
 
     run_id = req.run_id or f"{datetime.date.today().isoformat()}-{uuid.uuid4().hex[:6]}"
-    if run_id in active_cancellations:
+    if run_id in active_cancellations or await is_run_cancelled(run_id):
         raise HTTPException(status_code=400, detail="Research run was cancelled by user.")
 
     try:
@@ -396,17 +382,19 @@ async def start_research(req: ResearchRequest, user: AuthenticatedUser = Depends
         raise HTTPException(status_code=500, detail=f"Database initialization error: {e}")
 
     # Double-check for early cancellation after Supabase DB write completes
-    if run_id in active_cancellations:
+    if run_id in active_cancellations or await is_run_cancelled(run_id):
         raise HTTPException(status_code=400, detail="Research run was cancelled by user.")
     queue = asyncio.Queue()
 
-    active_runs[run_id] = {
-        "queue": queue,
+    run_info = {
         "status": "running",
         "topic": req.topic,
         "final_report": "",
         "chat_id": chat_id
     }
+    active_runs[run_id] = {**run_info, "queue": queue}
+    await set_run_state(run_id, run_info)
+
     # Initialize the resume event
     active_resumes[run_id] = threading.Event()
 
@@ -437,21 +425,15 @@ async def stream_run(run_id: str, token: Optional[str] = Query(None)):
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))
 
-    if run_id not in active_runs:
-        raise HTTPException(status_code=404, detail="Run ID not found")
-        
-    queue = active_runs[run_id]["queue"]
-    
     async def event_generator():
-        while True:
-            try:
-                event = await queue.get()
-                yield f"data: {json.dumps(event)}\n\n"
-                if event["type"] in ("complete", "cancelled"):
+        try:
+            async for payload in subscribe_run_events(run_id):
+                yield f"data: {json.dumps(payload)}\n\n"
+                if payload.get("type") in ("complete", "cancelled"):
                     break
-            except asyncio.CancelledError:
-                break
-                
+        except asyncio.CancelledError:
+            pass
+
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 @app.post("/api/research/cancel/{run_id}")
@@ -1030,6 +1012,8 @@ async def chat_handler(req: ChatRequest, user: AuthenticatedUser = Depends(get_c
     if not req.query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty")
 
+    await enforce_rate_limit(user.user_id, "chat_message", limit=30, window_seconds=86400)
+
     from src.tools.llm import safe_llm_invoke
     from src.tools.smart_search import evaluate_search_intent, execute_smart_search
     from langchain_core.messages import SystemMessage, HumanMessage
@@ -1039,6 +1023,11 @@ async def chat_handler(req: ChatRequest, user: AuthenticatedUser = Depends(get_c
         context, chat_history, chat_id,
         rolling_summary, brief_summary
     ) = await _resolve_chat_context(req, user)
+
+    if chat_id:
+        cached = await check_semantic_cache(chat_id, req.query, threshold=0.90)
+        if cached:
+            return {"response": cached, "cached": True, "sources": []}
 
     # Lazily generate brief summary (one-time cost per research chat)
     if chat_id and context and not brief_summary:
@@ -1095,6 +1084,10 @@ async def chat_handler(req: ChatRequest, user: AuthenticatedUser = Depends(get_c
             user, req, target_filename, db_brief, context, chat_history, chat_id, assistant_response, sources=sources
         )
 
+        effective_chat_id = new_chat_id or chat_id
+        if effective_chat_id and assistant_response:
+            await save_semantic_cache(effective_chat_id, req.query, assistant_response)
+
         if new_chat_id and not chat_id:
             return {"response": assistant_response, "filename": new_chat_id, "sources": sources}
         return {"response": assistant_response, "matched_filename": target_filename, "sources": sources}
@@ -1106,6 +1099,8 @@ async def chat_stream_handler(req: ChatRequest, user: AuthenticatedUser = Depend
     """Streaming SSE endpoint — yields tokens as they arrive from the LLM."""
     if not req.query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty")
+
+    await enforce_rate_limit(user.user_id, "chat_message", limit=30, window_seconds=86400)
 
     from src.tools.llm import make_llm
     from src.tools.smart_search import evaluate_search_intent, execute_smart_search

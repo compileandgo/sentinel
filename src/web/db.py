@@ -15,6 +15,10 @@ class AuthenticatedUser:
         self.email = email
         self.client = client
 
+    @property
+    def user_id(self) -> str:
+        return self.id
+
 def get_user_client(token: str) -> Client:
     """Returns a Supabase client scoped to the user's JWT token to enforce RLS."""
     client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)

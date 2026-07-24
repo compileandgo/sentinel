@@ -53,6 +53,9 @@ class Config:
     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
     PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "sentinel-index")
 
+    # Redis & Infrastructure
+    REDIS_URL = os.getenv("REDIS_URL", "")
+
     # Cost controls
     MAX_RESEARCH_ITERATIONS = int(os.getenv("MAX_RESEARCH_ITERATIONS", "1"))
     MAX_SEARCH_CALLS_PER_SUBAGENT = int(os.getenv("MAX_SEARCH_CALLS_PER_SUBAGENT", "2"))
