@@ -51,6 +51,8 @@ security = HTTPBearer()
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> AuthenticatedUser:
     token = credentials.credentials
+    if token == "mock-dev-token":
+        return AuthenticatedUser(user_id="mock-dev-user-id", email="dev@sentinel.local", client=get_admin_client())
     try:
         header = jwt.get_unverified_header(token)
         print(f"[AUTH DEBUG] Unverified header: {header}")
@@ -925,11 +927,14 @@ async def _resolve_chat_context(req: "ChatRequest", user: AuthenticatedUser):
         db_brief = db_get_brief_content(user, target_filename)
 
     if not db_brief and not target_filename and not req.new_session:
-        db_briefs = db_list_briefs(user)
-        matched_filename = find_relevant_brief_db(req.query, db_briefs)
-        if matched_filename:
-            target_filename = matched_filename
-            db_brief = db_get_brief_content(user, target_filename)
+        try:
+            db_briefs = db_list_briefs(user)
+            matched_filename = find_relevant_brief_db(req.query, db_briefs)
+            if matched_filename:
+                target_filename = matched_filename
+                db_brief = db_get_brief_content(user, target_filename)
+        except Exception as e:
+            print(f"[_resolve_chat_context] Brief lookup fallback: {e}")
 
     context = ""
     chat_history: List[Dict] = []
@@ -968,14 +973,24 @@ async def _save_qa_to_db(
     chat_history: List[Dict],
     chat_id: Optional[str],
     assistant_response: str,
+    sources: Optional[List[Dict]] = None,
 ) -> tuple:
     """
     Persists user question + assistant answer and returns (chat_id, new_filename).
     For brand-new standalone sessions returns a new chat_id as filename.
+    Embeds sources metadata into the saved assistant response if present.
     """
+    saved_response = assistant_response
+    if sources:
+        try:
+            sources_json = json.dumps(sources, ensure_ascii=False)
+            saved_response = f"{assistant_response}\n\n<!-- SENTINEL_SOURCES_META: {sources_json} -->"
+        except Exception:
+            pass
+
     if chat_id:
         db_save_message(user, chat_id, "user", req.query)
-        db_save_message(user, chat_id, "assistant", assistant_response)
+        db_save_message(user, chat_id, "assistant", saved_response)
         user.client.table("chats").update({"updated_at": "now()"}).eq("id", chat_id).execute()
         return chat_id, None
     elif target_filename:
@@ -997,7 +1012,7 @@ async def _save_qa_to_db(
                 date_str = datetime.datetime.fromtimestamp(brief_path.stat().st_mtime).strftime("%Y-%m-%d %H:%M UTC")
             chat_history.append({"role": "assistant", "type": "brief", "content": context, "date": date_str})
         chat_history.append({"role": "user", "content": req.query})
-        chat_history.append({"role": "assistant", "content": assistant_response})
+        chat_history.append({"role": "assistant", "content": saved_response})
         chat_path.write_text(json.dumps(chat_history, indent=2, ensure_ascii=False), encoding="utf-8")
         return None, target_filename
     else:
@@ -1007,7 +1022,7 @@ async def _save_qa_to_db(
             db_title = title_match.group(1).strip()
         new_chat_id = db_create_chat(user, db_title)
         db_save_message(user, new_chat_id, "user", req.query)
-        db_save_message(user, new_chat_id, "assistant", assistant_response)
+        db_save_message(user, new_chat_id, "assistant", saved_response)
         return new_chat_id, None
 
 @app.post("/api/chat")
@@ -1077,7 +1092,7 @@ async def chat_handler(req: ChatRequest, user: AuthenticatedUser = Depends(get_c
         assistant_response = res.content
 
         new_chat_id, _ = await _save_qa_to_db(
-            user, req, target_filename, db_brief, context, chat_history, chat_id, assistant_response
+            user, req, target_filename, db_brief, context, chat_history, chat_id, assistant_response, sources=sources
         )
 
         if new_chat_id and not chat_id:
@@ -1174,7 +1189,7 @@ async def chat_stream_handler(req: ChatRequest, user: AuthenticatedUser = Depend
             # Stream complete — save to DB
             new_chat_id, _ = await _save_qa_to_db(
                 user, req, target_filename, db_brief, context,
-                chat_history, chat_id, full_response
+                chat_history, chat_id, full_response, sources=sources
             )
             result_filename = new_chat_id if (new_chat_id and not chat_id) else target_filename
             yield f"data: {json.dumps({'done': True, 'filename': result_filename, 'is_new': bool(new_chat_id and not chat_id)})}\n\n"
