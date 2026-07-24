@@ -11,7 +11,7 @@ from pathlib import Path
 import time
 from typing import Dict, List, Optional
 import uvicorn
-from fastapi import FastAPI, BackgroundTasks, HTTPException, Request, Depends, Query
+from fastapi import FastAPI, BackgroundTasks, HTTPException, Request, Depends, Query, File, UploadFile
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -1210,6 +1210,21 @@ async def chat_stream_handler(req: ChatRequest, user: AuthenticatedUser = Depend
         },
     )
 
+
+@app.post("/api/voice/stt")
+async def voice_stt_handler(file: UploadFile = File(...), user: AuthenticatedUser = Depends(get_current_user)):
+    """Accepts uploaded audio blob (webm/wav) and returns Groq Whisper-v3 high-accuracy transcription."""
+    from src.tools.voice import transcribe_audio_bytes
+    try:
+        audio_bytes = await file.read()
+        if not audio_bytes:
+            raise HTTPException(status_code=400, detail="Empty audio file")
+        filename = file.filename or "speech.webm"
+        text = await transcribe_audio_bytes(audio_bytes, filename=filename)
+        return {"text": text}
+    except Exception as e:
+        print(f"  [Voice STT Error] {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Mount static folder
 static_path = Path(__file__).resolve().parent / "static"

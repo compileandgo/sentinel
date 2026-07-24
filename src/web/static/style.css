@@ -3834,3 +3834,50 @@ body.light-theme {
     color: var(--text-muted, #64748b);
     flex-shrink: 0;
 }
+
+/* Voice Feature Styles */
+#mic-btn.recording {
+    background-color: rgba(239, 68, 68, 0.2) !important;
+    color: #ef4444 !important;
+    border-color: #ef4444 !important;
+    animation: mic-pulse 1.3s infinite alternate;
+}
+
+@keyframes mic-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6);
+        transform: scale(1);
+    }
+    100% {
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+        transform: scale(1.1);
+    }
+}
+
+.speech-btn {
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    color: var(--text-muted, #94a3b8);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 4px;
+    transition: color 0.15s ease;
+}
+
+.speech-btn:hover {
+    color: var(--text-primary);
+}
+
+.speech-btn.speaking {
+    color: #3b82f6 !important;
+    animation: speech-pulse 1.5s infinite;
+}
+
+@keyframes speech-pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
