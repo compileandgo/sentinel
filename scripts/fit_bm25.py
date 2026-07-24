@@ -34,7 +34,7 @@ def fetch_all_child_chunks(supabase) -> list:
             res = (
                 supabase.table("research_chunks")
                 .select("chunk_text")
-                .not_("parent_id", "is", None)
+                .not_.is_("parent_id", "null")
                 .range(offset, offset + PAGE_SIZE - 1)
                 .execute()
             )
