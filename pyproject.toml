@@ -23,4 +23,6 @@ dependencies = [
     "pinecone>=5.0.0",
     "fastembed>=0.3.0",
     "pinecone-text>=0.11.0",
+    "python-multipart>=0.0.32",
+    "redis>=8.0.1",
 ]
