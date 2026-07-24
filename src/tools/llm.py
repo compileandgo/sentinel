@@ -266,22 +266,66 @@ def safe_groq_invoke(
 class FastEmbedWrapper:
     def __init__(self, model_name: str = "BAAI/bge-base-en-v1.5"):
         from fastembed import TextEmbedding
-        # Use persistent workspace cache_dir instead of volatile /tmp
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         cache_dir = os.path.join(project_root, ".fastembed_cache")
-        os.makedirs(cache_dir, exist_ok=True)
+        try:
+            os.makedirs(cache_dir, exist_ok=True)
+        except Exception:
+            cache_dir = "/tmp/fastembed_cache"
+            os.makedirs(cache_dir, exist_ok=True)
+
         self.model_name = model_name
         self.cache_dir = cache_dir
-        self.model = TextEmbedding(model_name=model_name, cache_dir=cache_dir)
+        
+        # Check and fix corrupted broken symlinks in cache if any exist
+        self._check_and_clean_corrupted_cache()
+        
+        try:
+            self.model = TextEmbedding(model_name=model_name, cache_dir=cache_dir)
+        except Exception as e:
+            print(f"  [FastEmbed] Init error: {e} — purging cache and re-downloading...")
+            self._purge_and_reload()
+
+    def _check_and_clean_corrupted_cache(self):
+        """Checks for broken symlinks or missing ONNX model target files and cleans corrupted dirs."""
+        import glob
+        try:
+            snapshots = glob.glob(os.path.join(self.cache_dir, "models--*", "snapshots", "*"))
+            for snap in snapshots:
+                onnx_path = os.path.join(snap, "model_optimized.onnx")
+                if os.path.islink(onnx_path) and not os.path.exists(os.path.realpath(onnx_path)):
+                    print(f"  [FastEmbed] Detected broken symlink in {onnx_path} — purging cache...")
+                    import shutil
+                    shutil.rmtree(self.cache_dir, ignore_errors=True)
+                    os.makedirs(self.cache_dir, exist_ok=True)
+                    break
+                elif not os.path.exists(onnx_path) and len(os.listdir(snap)) > 0:
+                    # Snapshot exists but model_optimized.onnx is missing
+                    print(f"  [FastEmbed] Missing model_optimized.onnx in {snap} — purging cache...")
+                    import shutil
+                    shutil.rmtree(self.cache_dir, ignore_errors=True)
+                    os.makedirs(self.cache_dir, exist_ok=True)
+                    break
+        except Exception as e:
+            print(f"  [FastEmbed] Cache check warning: {e}")
+
+    def _purge_and_reload(self):
+        import shutil
+        from fastembed import TextEmbedding
+        try:
+            shutil.rmtree(self.cache_dir, ignore_errors=True)
+            os.makedirs(self.cache_dir, exist_ok=True)
+        except Exception:
+            pass
+        self.model = TextEmbedding(model_name=self.model_name, cache_dir=self.cache_dir)
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         try:
             embeddings = list(self.model.embed(texts))
             return [e.tolist() for e in embeddings]
         except Exception as e:
-            print(f"  [FastEmbed] Document embedding error: {e} — re-initializing model...")
-            from fastembed import TextEmbedding
-            self.model = TextEmbedding(model_name=self.model_name, cache_dir=self.cache_dir)
+            print(f"  [FastEmbed] Document embedding error: {e} — purging cache and retrying...")
+            self._purge_and_reload()
             embeddings = list(self.model.embed(texts))
             return [e.tolist() for e in embeddings]
 
@@ -290,9 +334,8 @@ class FastEmbedWrapper:
             embeddings = list(self.model.embed([text]))
             return embeddings[0].tolist()
         except Exception as e:
-            print(f"  [FastEmbed] Query embedding error: {e} — re-initializing model...")
-            from fastembed import TextEmbedding
-            self.model = TextEmbedding(model_name=self.model_name, cache_dir=self.cache_dir)
+            print(f"  [FastEmbed] Query embedding error: {e} — purging cache and retrying...")
+            self._purge_and_reload()
             embeddings = list(self.model.embed([text]))
             return embeddings[0].tolist()
 
