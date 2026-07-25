@@ -4,7 +4,7 @@ Sentinel is an open-source, enterprise-grade deep research and geopolitical inte
 
 ---
 
-## 🗺️ Documentation Directory
+## Documentation Directory
 
 ### 1. Architecture
 * **[System Overview](architecture/overview.md)**: Overall architecture, request lifecycle, dataflow, and design choices.
