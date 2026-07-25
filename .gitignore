@@ -35,5 +35,6 @@ server.log
 # Stray research output files
 *.md
 !README.md
+!docs/**/*.md
 
 run_ui.py
