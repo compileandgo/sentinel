@@ -227,12 +227,23 @@ def run_agent_in_thread(run_id: str, chat_id: str, topic: str, max_iterations: i
                         plan_text = ""
                         if plan_path and Path(plan_path).exists():
                             plan_text = Path(plan_path).read_text(encoding="utf-8")
-                        
+
+                        subagent_tasks = node_output.get("subagent_tasks", [])
+                        tasks_payload = []
+                        for t in subagent_tasks:
+                            if isinstance(t, dict):
+                                tasks_payload.append({"subagent_id": t.get("subagent_id", ""), "task": t.get("task", "")})
+                            elif hasattr(t, "task"):
+                                tasks_payload.append({"subagent_id": getattr(t, "subagent_id", ""), "task": getattr(t, "task", "")})
+
                         plan_evt = {
                             "type": "plan_ready",
                             "data": {
+                                "run_id": run_id,
+                                "topic": initial_state.get("topic", ""),
                                 "plan_path": plan_path,
                                 "plan_content": plan_text,
+                                "tasks": tasks_payload,
                                 "message": "Research Plan generated. Waiting for user approval."
                             }
                         }
