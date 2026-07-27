@@ -282,7 +282,8 @@ def run_agent_in_thread(run_id: str, chat_id: str, topic: str, max_iterations: i
         try:
             topic_str = run_data.get("topic", "Research Report")
             chat_id = run_data.get("chat_id")
-            db_save_brief_admin(brief_filename, topic_str, final_report, chat_id=chat_id)
+            if chat_id:
+                db_save_brief_admin(chat_id=chat_id, title=topic_str, content=final_report, filename=brief_filename)
         except Exception as e:
             print(f"   [Thread:{run_id}] Failed to save brief to database: {e}")
 
