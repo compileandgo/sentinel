@@ -38,17 +38,9 @@ def route_after_eval(state: AgentState) -> str:
 def route_after_citation(state: AgentState) -> str:
     """
     Conditional edge router from citation agent.
-    If the citation agent triggered a continue status due to high uncited ratio
-    and we haven't hit the cap, loop back to lead_researcher.
-    Otherwise terminate.
+    After synthesis and citation alignment are complete, route to END
+    so the final brief is delivered and rendered on the UI immediately.
     """
-    from src.config import Config
-    eval_res = state.get("eval_result")
-    if eval_res and eval_res.get("status") == "continue":
-        current_iter = state.get("iterations", 0)
-        if current_iter < Config.MAX_RESEARCH_ITERATIONS:
-            print(f"   [Routing] High uncited ratio detected ({state.get('uncited_ratio', 0.0):.1%})! Routing back to LeadResearcher for verification.")
-            return "lead_researcher"
     return "end"
 
 
