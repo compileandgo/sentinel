@@ -1882,6 +1882,41 @@ document.addEventListener("DOMContentLoaded", () => {
     const createSummaryBtn = document.getElementById("create-summary-btn");
     const createOutlineBtn = document.getElementById("create-outline-btn");
 
+    // ── Dropdown Toggle Event Listeners ──────────────────────────────────────
+    if (contentsBtn && contentsMenu) {
+        contentsBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            contentsMenu.classList.toggle("hidden");
+            if (exportMenu) exportMenu.classList.add("hidden");
+            if (createMenu) createMenu.classList.add("hidden");
+        });
+    }
+
+    if (exportBtn && exportMenu) {
+        exportBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            exportMenu.classList.toggle("hidden");
+            if (contentsMenu) contentsMenu.classList.add("hidden");
+            if (createMenu) createMenu.classList.add("hidden");
+        });
+    }
+
+    if (createBtn && createMenu) {
+        createBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            createMenu.classList.toggle("hidden");
+            if (contentsMenu) contentsMenu.classList.add("hidden");
+            if (exportMenu) exportMenu.classList.add("hidden");
+        });
+    }
+
+    // Close all menus when clicking outside
+    document.addEventListener("click", () => {
+        if (contentsMenu) contentsMenu.classList.add("hidden");
+        if (exportMenu) exportMenu.classList.add("hidden");
+        if (createMenu) createMenu.classList.add("hidden");
+    });
+
     // ── PDF Export Engine ────────────────────────────────────────────────────
     async function exportReportAsPDF(containerEl, filenameTitle) {
         if (!containerEl) {
