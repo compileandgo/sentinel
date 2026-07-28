@@ -860,9 +860,10 @@ document.addEventListener("DOMContentLoaded", () => {
             authFeedback.className = "auth-feedback";
 
             try {
+                const redirectUrl = window.location.origin.includes("/app") ? window.location.origin : `${window.location.origin}/app`;
                 const { error } = await supabase.auth.signInWithOAuth({
                     provider: provider,
-                    options: { redirectTo: window.location.origin }
+                    options: { redirectTo: redirectUrl }
                 });
                 if (error) throw error;
             } catch (err) {
