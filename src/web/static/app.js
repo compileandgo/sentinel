@@ -1949,6 +1949,9 @@ document.addEventListener("DOMContentLoaded", () => {
         // Temporarily apply print high-contrast styling (black text on white PDF background)
         containerEl.classList.add("sentinel-pdf-export-active");
 
+        // Allow style reflow before canvas capture
+        await new Promise(resolve => setTimeout(resolve, 100));
+
         // Convert Chart.js canvases to temporary static PNG images for high-res rendering
         const chartCanvases = containerEl.querySelectorAll("canvas");
         const restoreList = [];

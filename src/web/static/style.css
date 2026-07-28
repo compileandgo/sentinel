@@ -4369,6 +4369,11 @@ body.light-theme .chart-action-btn:hover {
     color: #0f172a !important;
 }
 
+.sentinel-pdf-export-active * {
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+}
+
 .sentinel-pdf-export-active h1,
 .sentinel-pdf-export-active h2,
 .sentinel-pdf-export-active h3,
@@ -4382,30 +4387,20 @@ body.light-theme .chart-action-btn:hover {
     color: #020617 !important;
 }
 
-.sentinel-pdf-export-active p,
-.sentinel-pdf-export-active li,
-.sentinel-pdf-export-active span,
-.sentinel-pdf-export-active div,
-.sentinel-pdf-export-active td,
-.sentinel-pdf-export-active th,
-.sentinel-pdf-export-active blockquote,
-.sentinel-pdf-export-active .report-meta,
-.sentinel-pdf-export-active .report-subtitle {
-    color: #1e293b !important;
-}
-
 .sentinel-pdf-export-active a {
     color: #0070f3 !important;
 }
 
 .sentinel-pdf-export-active table {
+    background-color: #ffffff !important;
     border-color: #cbd5e1 !important;
 }
 
 .sentinel-pdf-export-active th,
 .sentinel-pdf-export-active td {
+    background-color: #ffffff !important;
     border-color: #e2e8f0 !important;
-    color: #1e293b !important;
+    color: #0f172a !important;
 }
 
 .sentinel-pdf-export-active .sentinel-chart-card {
@@ -4413,4 +4408,9 @@ body.light-theme .chart-action-btn:hover {
     border: 1px solid #e2e8f0 !important;
     box-shadow: none !important;
 }
+
+.sentinel-pdf-export-active .sentinel-chart-card * {
+    color: #0f172a !important;
+}
+
 
