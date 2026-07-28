@@ -122,6 +122,7 @@ def cross_examiner_node(state: AgentState) -> Dict:
 
         if do_cross_model:
             print(f"  [CrossExaminer] Cross-model bias check enabled. Querying both Gemini and Groq in parallel...")
+            import concurrent.futures
             from concurrent.futures import ThreadPoolExecutor
 
             def run_gemini():
@@ -151,8 +152,9 @@ def cross_examiner_node(state: AgentState) -> Dict:
                     print(f"  ⚠️ [CrossExaminer] Groq classification failed: {e}")
 
             with ThreadPoolExecutor(max_workers=2) as executor:
-                executor.submit(run_gemini)
-                executor.submit(run_groq)
+                f1 = executor.submit(run_gemini)
+                f2 = executor.submit(run_groq)
+                concurrent.futures.wait([f1, f2], timeout=6.0)
         else:
             # Standard single-model fallback call
             print(f"  [CrossExaminer] Batch classifying {len(unknown_domains)} domains via standard LLM...")

@@ -203,7 +203,7 @@ def gdelt_search(query: str, max_results: int = 10) -> List[dict]:
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     }
     try:
-        resp = requests.get(url, params=params, headers=headers, timeout=10)
+        resp = requests.get(url, params=params, headers=headers, timeout=3.5)
         if resp.status_code == 200:
             data = resp.json()
             return data.get("articles", [])
