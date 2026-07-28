@@ -900,11 +900,13 @@ def _build_system_prompt() -> str:
         "is general knowledge. Use a professional, neutral tone. Format your response cleanly in markdown. "
         "Do not invent statistics that are not present in the context; if using general knowledge, specify "
         "that it is standard industry intelligence.\n\n"
-        "DIAGRAMS: If the user asks you to draw, visualize, or diagram something, produce a Mermaid "
-        "diagram inside a fenced code block with the language identifier 'mermaid'. "
-        "Use graph TD for flows and hierarchies, sequenceDiagram for timelines, and mindmap for "
-        "concept/actor maps. Keep diagrams under 12 nodes."
-        "add a diagram when it clearly adds more value than prose."
+        "DIAGRAMS & CHARTS:\n"
+        "- If the user asks you to draw, visualize, or diagram something, produce a Mermaid "
+        "diagram inside a fenced code block with the language identifier 'mermaid'. Keep under 12 nodes.\n"
+        "- When presenting numeric comparisons, statistics, polls, percentages, trends, budget distributions, "
+        "or metric breakdowns, generate a Chart.js visualization inside a ```chartjs ``` fenced code block. "
+        "The JSON inside ```chartjs must contain 'type' ('bar', 'line', 'pie', 'doughnut', 'radar', 'polarArea'), "
+        "'title', and 'data' object containing 'labels' array and 'datasets' array with 'label' and numeric 'data' values."
     )
 
 async def _resolve_chat_context(req: "ChatRequest", user: AuthenticatedUser):

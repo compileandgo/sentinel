@@ -245,7 +245,7 @@ SYNTHESIS_SECTION_SYSTEM = (
     "2. OTHER SECTIONS FORMATTING (is_introduction: false):\n"
     "   Start directly with the numbered H2 heading (e.g. '## 2. Methodology & Architecture' or '## 3. Findings'), followed by the section content.\n"
     "3. DATA DENSITY: Every paragraph must contain high-density facts, numbers, dates, statistics, percentages, or technical parameters.\n"
-    "4. CONTEXTUAL TABLES: Include detailed markdown tables WITHIN sections where they organically add value. Column headers must be bold. Do NOT add meta-quality columns like 'Source Confidence' or 'Reliability'.\n"
+    "4. CONTEXTUAL TABLES & CHARTS: Include detailed markdown tables and Chart.js charts inside ```chartjs ``` code blocks where numeric data, polls, statistics, percentages, rankings, or trends are presented. Chart JSON must include 'type' ('bar', 'line', 'pie', 'doughnut', 'radar', 'polarArea'), 'title', and 'data' object with 'labels' and 'datasets'.\n"
     "5. STRICT GROUNDING: Ground every single claim strictly in the provided search snippets, timeline, and subagent findings. Do not speculate.\n"
     "6. OUTPUT FORMAT: Output ONLY the raw markdown text of the section. Do NOT include conversational preambles, intros, or outros."
 )

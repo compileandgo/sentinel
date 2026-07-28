@@ -4248,3 +4248,115 @@ body.light-theme {
     50% { opacity: 0.5; }
     100% { opacity: 1; }
 }
+
+/* ──────────────────────────────────────────────────────── */
+/* Sentinel Elevated Chart.js Visualization Cards */
+/* ──────────────────────────────────────────────────────── */
+.sentinel-chart-card {
+    margin: 24px 0;
+    padding: 20px 24px 24px;
+    border-radius: 16px;
+    background: #1c202a !important; /* Elevated distinct dark background — NEVER mixes with report/chat background */
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    position: relative;
+    overflow: hidden;
+}
+
+body.light-theme .sentinel-chart-card {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08) !important;
+}
+
+.chart-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.light-theme .chart-card-header {
+    border-bottom-color: #f1f5f9;
+}
+
+.chart-card-title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.chart-card-badge {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: rgba(0, 112, 243, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(0, 112, 243, 0.3);
+}
+
+.chart-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #FBF9FA;
+    margin: 0;
+}
+
+body.light-theme .chart-card-title {
+    color: #0f172a;
+}
+
+.chart-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chart-action-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+}
+
+.chart-action-btn:hover {
+    background: rgba(0, 112, 243, 0.2);
+    border-color: rgba(0, 112, 243, 0.4);
+    color: #ffffff;
+}
+
+body.light-theme .chart-action-btn {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #334155;
+}
+
+body.light-theme .chart-action-btn:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+.chart-canvas-wrapper {
+    position: relative;
+    width: 100%;
+    max-height: 380px;
+    min-height: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

@@ -190,6 +190,153 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    // ── Chart.js visual engine renderer ──────────────────────────────────────
+    function renderSentinelCharts(container) {
+        if (typeof Chart === "undefined" || !container) return;
+        
+        const codeBlocks = container.querySelectorAll("pre code");
+        codeBlocks.forEach(codeBlock => {
+            const text = codeBlock.textContent.trim();
+            const parentPre = codeBlock.closest("pre");
+            if (!parentPre || parentPre.dataset.chartProcessed) return;
+
+            let chartData = null;
+            const isChartBlock = codeBlock.classList.contains("language-chartjs") || 
+                               codeBlock.classList.contains("language-chart") || 
+                               (text.includes('"type"') && (text.includes('"datasets"') || text.includes('"data"')));
+
+            if (isChartBlock) {
+                try {
+                    chartData = JSON.parse(text);
+                } catch (e) {
+                    try {
+                        const cleaned = text.replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":');
+                        chartData = JSON.parse(cleaned);
+                    } catch (err) {}
+                }
+            }
+
+            if (chartData && chartData.type && (chartData.data || chartData.datasets)) {
+                parentPre.dataset.chartProcessed = "true";
+                
+                const card = document.createElement("div");
+                card.className = "sentinel-chart-card";
+                
+                const title = chartData.title || "Data Visualization";
+                const chartType = (chartData.type || "bar").toUpperCase();
+                
+                card.innerHTML = `
+                    <div class="chart-card-header">
+                        <div class="chart-card-title-group">
+                            <span class="chart-card-badge">📊 ${chartType}</span>
+                            <h4 class="chart-card-title">${escHtml(title)}</h4>
+                        </div>
+                        <div class="chart-card-actions">
+                            <button class="chart-action-btn download-chart-btn">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                <span>PNG</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas></canvas>
+                    </div>
+                `;
+
+                parentPre.replaceWith(card);
+                
+                const canvas = card.querySelector("canvas");
+                const ctx = canvas.getContext("2d");
+                
+                const isLight = document.body.classList.contains("light-theme");
+                const textColor = isLight ? "#334155" : "#e2e8f0";
+                const gridColor = isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)";
+                
+                const palette = [
+                    "#0070f3", "#38bdf8", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6", "#14b8a6", "#6366f1"
+                ];
+                
+                let rawDatasets = chartData.data?.datasets || chartData.datasets || [];
+                let labels = chartData.data?.labels || chartData.labels || [];
+                
+                const datasets = rawDatasets.map((ds, idx) => {
+                    const color = palette[idx % palette.length];
+                    const typeStr = chartData.type.toLowerCase();
+                    
+                    if (["pie", "doughnut", "polararea"].includes(typeStr)) {
+                        return {
+                            ...ds,
+                            backgroundColor: palette.slice(0, labels.length),
+                            borderColor: isLight ? "#ffffff" : "#1c202a",
+                            borderWidth: 2
+                        };
+                    }
+                    
+                    return {
+                        label: ds.label || `Dataset ${idx + 1}`,
+                        data: ds.data || [],
+                        backgroundColor: typeStr === "line" ? "rgba(0, 112, 243, 0.15)" : color,
+                        borderColor: color,
+                        borderWidth: 2,
+                        fill: typeStr === "line",
+                        tension: 0.35,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    };
+                });
+                
+                const typeLower = chartData.type.toLowerCase();
+                const chartConfig = {
+                    type: typeLower === "horizontalbar" ? "bar" : typeLower,
+                    data: { labels, datasets },
+                    options: {
+                        indexAxis: typeLower === "horizontalbar" ? "y" : "x",
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: datasets.length > 1 || ["pie", "doughnut", "polararea"].includes(typeLower),
+                                labels: { color: textColor, font: { family: "Inter", size: 12, weight: "500" } }
+                            },
+                            tooltip: {
+                                backgroundColor: isLight ? "#ffffff" : "#111317",
+                                titleColor: isLight ? "#0f172a" : "#f8fafc",
+                                bodyColor: isLight ? "#334155" : "#e2e8f0",
+                                borderColor: isLight ? "#cbd5e1" : "rgba(255,255,255,0.15)",
+                                borderWidth: 1,
+                                padding: 10,
+                                boxPadding: 6,
+                                usePointStyle: true
+                            }
+                        },
+                        scales: ["pie", "doughnut", "polararea", "radar"].includes(typeLower) ? {} : {
+                            x: {
+                                grid: { color: gridColor },
+                                ticks: { color: textColor, font: { family: "Inter", size: 11 } }
+                            },
+                            y: {
+                                grid: { color: gridColor },
+                                ticks: { color: textColor, font: { family: "Inter", size: 11 } }
+                            }
+                        }
+                    }
+                };
+                
+                const chartInstance = new Chart(ctx, chartConfig);
+                
+                const dlBtn = card.querySelector(".download-chart-btn");
+                if (dlBtn) {
+                    dlBtn.addEventListener("click", () => {
+                        const link = document.createElement("a");
+                        link.download = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-chart.png`;
+                        link.href = chartInstance.toBase64Image();
+                        link.click();
+                    });
+                }
+            }
+        });
+    }
+
     function openDiagramPreviewModal(block) {
         const svgElement = block.querySelector("svg");
         if (!svgElement) return;
@@ -1420,6 +1567,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         if (payload.done) {
                             textTarget.classList.remove("streaming");
                             renderMermaidDiagrams(textTarget);
+                            renderSentinelCharts(textTarget);
                             if (activeItem) activeItem.remove();
                             // Strip title tags before passing to action setup
                             const cleanText = fullText.replace(/<title>[\s\S]*?<\/title>/i, "").trim();
@@ -2268,6 +2416,7 @@ document.addEventListener("DOMContentLoaded", () => {
             idleWelcome.appendChild(div);
             if (!isLoading) {
                 renderMermaidDiagrams(div);
+                renderSentinelCharts(div);
             }
         }
         chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -2328,6 +2477,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 ? marked.parse(displayMarkdown)
                 : `<pre>${escHtml(displayMarkdown)}</pre>`;
             renderMermaidDiagrams(reportContent);
+            renderSentinelCharts(reportContent);
         } catch {
             reportContent.innerHTML = `<pre>${escHtml(displayMarkdown)}</pre>`;
         }
@@ -3079,8 +3229,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             });
 
-            // Render Mermaid diagrams for all loaded historical messages
+            // Render Mermaid diagrams and Chart.js charts for all loaded historical messages
             renderMermaidDiagrams(idleWelcome);
+            renderSentinelCharts(idleWelcome);
 
             // Dynamic event listeners for the brief card
             const clickEl = document.getElementById("chat-brief-card-click");
