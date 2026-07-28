@@ -613,29 +613,110 @@ document.addEventListener("DOMContentLoaded", () => {
     const updatePasswordForm = document.getElementById("update-password-form");
     const authTabsContainer = document.getElementById("auth-tabs-container");
 
-    if (forgotPasswordLink && backToLoginLink && resetPasswordForm && authTabsContainer) {
-        forgotPasswordLink.addEventListener("click", (e) => {
-            e.preventDefault();
+    // Dynamic Auth Card Titles
+    const authMainTitle = document.getElementById("auth-main-title");
+    const authMainSubtitle = document.getElementById("auth-main-subtitle");
+    const gotoSignupLink = document.getElementById("goto-signup-link");
+    const gotoLoginLink = document.getElementById("goto-login-link");
+
+    function setAuthView(view) {
+        authFeedback.textContent = "";
+        authFeedback.className = "auth-feedback";
+
+        if (view === "login") {
+            if (tabLogin) tabLogin.classList.add("active");
+            if (tabSignup) tabSignup.classList.remove("active");
+            if (loginForm) loginForm.classList.remove("hidden");
+            if (signupForm) signupForm.classList.add("hidden");
+            if (resetPasswordForm) resetPasswordForm.classList.add("hidden");
+            if (authTabsContainer) authTabsContainer.classList.remove("hidden");
+            if (authMainTitle) authMainTitle.textContent = "Welcome Back!";
+            if (authMainSubtitle) authMainSubtitle.textContent = "Sign in to access strategic intelligence & research.";
+        } else if (view === "signup") {
+            if (tabSignup) tabSignup.classList.add("active");
+            if (tabLogin) tabLogin.classList.remove("active");
+            if (signupForm) signupForm.classList.remove("hidden");
+            if (loginForm) loginForm.classList.add("hidden");
+            if (resetPasswordForm) resetPasswordForm.classList.add("hidden");
+            if (authTabsContainer) authTabsContainer.classList.remove("hidden");
+            if (authMainTitle) authMainTitle.textContent = "Create Your Account";
+            if (authMainSubtitle) authMainSubtitle.textContent = "Create your account to explore deep geopolitical research.";
+        } else if (view === "reset") {
             if (loginForm) loginForm.classList.add("hidden");
             if (signupForm) signupForm.classList.add("hidden");
-            resetPasswordForm.classList.remove("hidden");
-            authTabsContainer.classList.add("hidden");
-            authFeedback.textContent = "";
-        });
+            if (resetPasswordForm) resetPasswordForm.classList.remove("hidden");
+            if (authTabsContainer) authTabsContainer.classList.add("hidden");
+            if (authMainTitle) authMainTitle.textContent = "Forgot Password?";
+            if (authMainSubtitle) authMainSubtitle.textContent = "Enter your email and we'll send a verification link.";
+        }
+    }
 
-        backToLoginLink.addEventListener("click", (e) => {
+    if (forgotPasswordLink) {
+        forgotPasswordLink.addEventListener("click", (e) => {
             e.preventDefault();
-            resetPasswordForm.classList.add("hidden");
-            if (loginForm) loginForm.classList.remove("hidden");
-            authTabsContainer.classList.remove("hidden");
-            authFeedback.textContent = "";
+            setAuthView("reset");
         });
     }
+
+    if (backToLoginLink) {
+        backToLoginLink.addEventListener("click", (e) => {
+            e.preventDefault();
+            setAuthView("login");
+        });
+    }
+
+    if (gotoSignupLink) {
+        gotoSignupLink.addEventListener("click", (e) => {
+            e.preventDefault();
+            setAuthView("signup");
+        });
+    }
+
+    if (gotoLoginLink) {
+        gotoLoginLink.addEventListener("click", (e) => {
+            e.preventDefault();
+            setAuthView("login");
+        });
+    }
+
+    // Password Toggle Buttons
+    document.querySelectorAll(".password-toggle-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const targetId = btn.getAttribute("data-target");
+            const input = document.getElementById(targetId);
+            if (input) {
+                const isPassword = input.type === "password";
+                input.type = isPassword ? "text" : "password";
+                btn.style.color = isPassword ? "#50e3c2" : "#64748b";
+            }
+        });
+    });
+
+    // Social Auth Buttons
+    document.querySelectorAll(".social-btn").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+            const isGoogle = btn.classList.contains("google-btn");
+            const provider = isGoogle ? "google" : "apple";
+            authFeedback.textContent = `Connecting to ${isGoogle ? 'Google' : 'Apple'}...`;
+            authFeedback.className = "auth-feedback";
+
+            try {
+                const { error } = await supabase.auth.signInWithOAuth({
+                    provider: provider,
+                    options: { redirectTo: window.location.origin }
+                });
+                if (error) throw error;
+            } catch (err) {
+                authFeedback.textContent = `${provider.toUpperCase()} Auth: ${err.message || 'Provider not configured.'}`;
+                authFeedback.className = "auth-feedback error";
+            }
+        });
+    });
 
     if (resetPasswordForm) {
         resetPasswordForm.addEventListener("submit", async (e) => {
             e.preventDefault();
-            authFeedback.textContent = "Sending reset link...";
+            authFeedback.textContent = "Sending verification link...";
             authFeedback.className = "auth-feedback";
             const email = document.getElementById("reset-email").value.trim();
 
@@ -645,7 +726,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
                 if (error) throw error;
 
-                authFeedback.textContent = "Password reset link sent to your email!";
+                authFeedback.textContent = "Verification link sent to your email!";
                 authFeedback.className = "auth-feedback success";
             } catch (err) {
                 authFeedback.textContent = err.message;
@@ -670,7 +751,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 setTimeout(() => {
                     updatePasswordForm.classList.add("hidden");
-                    // Clear the URL fragment to clean up hash params
                     window.history.replaceState({}, document.title, window.location.pathname);
                     updateUIForAuth();
                 }, 2000);
@@ -682,21 +762,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (tabLogin && tabSignup && loginForm && signupForm) {
-        tabLogin.addEventListener("click", () => {
-            tabLogin.classList.add("active");
-            tabSignup.classList.remove("active");
-            loginForm.classList.remove("hidden");
-            signupForm.classList.add("hidden");
-            authFeedback.textContent = "";
-        });
-
-        tabSignup.addEventListener("click", () => {
-            tabSignup.classList.add("active");
-            tabLogin.classList.remove("active");
-            signupForm.classList.remove("hidden");
-            loginForm.classList.add("hidden");
-            authFeedback.textContent = "";
-        });
+        tabLogin.addEventListener("click", () => setAuthView("login"));
+        tabSignup.addEventListener("click", () => setAuthView("signup"));
 
         loginForm.addEventListener("submit", async (e) => {
             e.preventDefault();
