@@ -1945,8 +1945,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const titleSlug = (filenameTitle || currentTopic || "sentinel-research").toLowerCase().replace(/[^a-z0-9]+/g, "-");
-        const isLight = document.body.classList.contains("light-theme");
-        const bgColor = isLight ? "#ffffff" : "#111317";
+
+        // Temporarily apply print high-contrast styling (black text on white PDF background)
+        containerEl.classList.add("sentinel-pdf-export-active");
 
         // Convert Chart.js canvases to temporary static PNG images for high-res rendering
         const chartCanvases = containerEl.querySelectorAll("canvas");
@@ -1980,7 +1981,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 scale: 2, 
                 useCORS: true, 
                 logging: false,
-                backgroundColor: bgColor
+                backgroundColor: "#ffffff"
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
             pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
@@ -1993,7 +1994,8 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("PDF generation failed:", err);
             showToast("Export Failed", "Error rendering PDF document.");
         } finally {
-            // Restore original canvases and UI action buttons
+            // Remove print high-contrast class to restore dark UI theme
+            containerEl.classList.remove("sentinel-pdf-export-active");
             restoreList.forEach(({ canvas, img }) => {
                 canvas.style.display = "";
                 if (img.parentNode) img.parentNode.removeChild(img);
