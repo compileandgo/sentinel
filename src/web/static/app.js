@@ -3290,9 +3290,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 });
             });
-                    }
-                });
-            }
 
             const thumbsUp = document.getElementById("thumbs-up-btn");
             const thumbsDown = document.getElementById("thumbs-down-btn");
