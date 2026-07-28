@@ -1593,12 +1593,45 @@ document.addEventListener("DOMContentLoaded", () => {
                                 }
                             }
 
-                            if (payload.is_new && payload.filename) {
+                            if (payload.filename) {
                                 currentBriefFilename = payload.filename;
+                                const msgContent = streamDiv.querySelector(".message-content");
+                                if (msgContent && !msgContent.querySelector(".chat-brief-card")) {
+                                    const briefTitleMatch = fullText.match(/<title>([\s\S]*?)<\/title>/i);
+                                    const reportTitle = briefTitleMatch ? briefTitleMatch[1].trim() : "Research Intelligence Brief";
+                                    
+                                    const briefCardHtml = `
+                                        <div class="chat-brief-card live-report-brief-card" style="margin-top: 14px;">
+                                            <div class="chat-brief-icon">
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <circle cx="12" cy="12" r="10"></circle>
+                                                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                                                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                                                </svg>
+                                            </div>
+                                            <div class="chat-brief-info">
+                                                <div class="chat-brief-title">${escHtml(reportTitle)}</div>
+                                                <div class="chat-brief-meta">Click to open full research brief</div>
+                                            </div>
+                                            <button class="open-report-btn" style="background: var(--gemini-blue, #0070f3); color: #fff; border: none; border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;">Open Report ➔</button>
+                                        </div>
+                                    `;
+                                    msgContent.insertAdjacentHTML("beforeend", briefCardHtml);
+                                    
+                                    const liveCard = msgContent.querySelector(".live-report-brief-card");
+                                    if (liveCard) {
+                                        liveCard.addEventListener("click", () => {
+                                            if (currentBriefFilename) {
+                                                loadBriefContent(currentBriefFilename);
+                                            }
+                                        });
+                                    }
+                                }
+                            }
+
+                            if (payload.is_new && payload.filename) {
                                 await loadBriefHistory();
                                 await loadBriefContent(payload.filename);
-                            } else if (payload.filename) {
-                                currentBriefFilename = payload.filename;
                             }
                             break outer;
                         }
@@ -3245,25 +3278,18 @@ document.addEventListener("DOMContentLoaded", () => {
             renderMermaidDiagrams(idleWelcome);
             renderSentinelCharts(idleWelcome);
 
-            // Dynamic event listeners for the brief card
-            const clickEl = document.getElementById("chat-brief-card-click");
-            if (clickEl) {
-                clickEl.addEventListener("click", () => {
-                    if (researchViewer.classList.contains("collapsed")) {
+            // Dynamic event listeners for the brief cards in chat history
+            const reportCards = idleWelcome.querySelectorAll(".chat-brief-card");
+            reportCards.forEach(card => {
+                card.addEventListener("click", () => {
+                    if (currentBriefFilename) {
+                        loadBriefContent(currentBriefFilename);
+                    } else if (title) {
                         openViewer(title);
-                        thinkingSkeleton.classList.add("hidden");
-                        thinkingArea.classList.add("hidden");
-                        isThinkingHidden = true;
-                        if (toggleThinkingBtn) {
-                            const label = toggleThinkingBtn.querySelector("span:first-child");
-                            const arrow = toggleThinkingBtn.querySelector(".arrow");
-                            if (label) label.textContent = "Show thinking";
-                            if (arrow) arrow.style.transform = "rotate(0deg)";
-                        }
-                        sourcesPanel.classList.add("hidden");
                         renderReport(content);
-                    } else {
-                        researchViewer.classList.add("collapsed");
+                    }
+                });
+            });
                     }
                 });
             }
