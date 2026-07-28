@@ -1,17 +1,17 @@
 @import url('Fonts/WEB/css/quicksand.css');
 
-/* Stark OLED Gemini Deep Research CSS System */
+/* Stark OLED Gemini Deep Research CSS System (Sentinel Blue Theme) */
 :root {
-    --bg-black: #000000;
-    --bg-sidebar: #131314;
-    --bg-card: #131314;
-    --bg-card-hover: #1E1E20;
-    --bg-panel: #131314;
-    --border-main: #2a2a2a;
-    --border-card: #2a2a2a;
+    --bg-black: #060911;
+    --bg-sidebar: #0b101c;
+    --bg-card: rgba(13, 18, 28, 0.85);
+    --bg-card-hover: rgba(22, 32, 48, 0.85);
+    --bg-panel: rgba(13, 18, 28, 0.85);
+    --border-main: rgba(255, 255, 255, 0.08);
+    --border-card: rgba(255, 255, 255, 0.08);
     
-    --text-primary: #E3E3E3;
-    --text-secondary: #C4C7C5;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
     --text-muted: #8E918F;
     --text-link: #0070f3;
     
@@ -25,17 +25,17 @@
 }
 
 body.light-theme {
-    --bg-black: #ffffff;
-    --bg-sidebar: #fafafa;
-    --bg-card: #fafafa;
-    --bg-card-hover: #f4f4f5;
-    --bg-panel: #fafafa;
-    --border-main: #e4e4e7;
-    --border-card: #e4e4e7;
+    --bg-black: #f8fafc;
+    --bg-sidebar: #f1f5f9;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f8fafc;
+    --bg-panel: #ffffff;
+    --border-main: #e2e8f0;
+    --border-card: #e2e8f0;
     
-    --text-primary: #09090b;
-    --text-secondary: #27272a;
-    --text-muted: #71717a;
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
     --text-link: #0070f3;
     
     --gemini-blue: #0070f3;
@@ -75,7 +75,7 @@ html {
 }
 
 body {
-    background-color: var(--bg-black);
+    background: radial-gradient(circle at 50% 30%, #0b111e 0%, #050811 60%, #020307 100%);
     color: var(--text-primary);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
@@ -83,6 +83,10 @@ body {
     height: 100%;
     height: -webkit-fill-available;
     height: 100dvh;
+}
+
+body.light-theme {
+    background: radial-gradient(circle at 50% 30%, #eff6ff 0%, #dbeafe 100%);
 }
 
 /* App Wrapper Grid */
@@ -93,7 +97,7 @@ body {
     height: 100vh;
     height: 100dvh;
     position: relative;
-    background-color: var(--bg-black);
+    background: transparent;
     overflow: hidden;
 }
 
