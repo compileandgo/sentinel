@@ -1878,43 +1878,121 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const copyBtn = document.getElementById("export-copy-btn");
     const exportMdBtn = document.getElementById("export-md-btn");
+    const exportPdfBtn = document.getElementById("export-pdf-btn");
     const createSummaryBtn = document.getElementById("create-summary-btn");
     const createOutlineBtn = document.getElementById("create-outline-btn");
 
-    // ── Outline dropdown ──────────────────────────────────────────────────────
-    contentsBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        contentsMenu.classList.toggle("hidden");
-        exportMenu.classList.add("hidden");
-        createMenu.classList.add("hidden");
-    });
+    // ── PDF Export Engine ────────────────────────────────────────────────────
+    async function exportReportAsPDF(containerEl, filenameTitle) {
+        if (!containerEl) {
+            containerEl = document.getElementById("report-content") || document.querySelector(".report-body");
+        }
+        if (!containerEl || !containerEl.textContent.trim()) {
+            showToast("Export Failed", "No report content available to export.");
+            return;
+        }
 
-    // ── Export dropdown ───────────────────────────────────────────────────────
-    if (exportBtn && exportMenu) {
-        exportBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            exportMenu.classList.toggle("hidden");
-            contentsMenu.classList.add("hidden");
-            createMenu.classList.add("hidden");
+        showToast("Generating PDF", "Preparing high-resolution PDF with embedded charts...");
+
+        if (typeof html2pdf === "undefined") {
+            try {
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement("script");
+                    script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+            } catch (err) {
+                showToast("Export Failed", "Unable to load PDF generation library.");
+                return;
+            }
+        }
+
+        const titleSlug = (filenameTitle || currentTopic || "sentinel-research").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+        const isLight = document.body.classList.contains("light-theme");
+        const bgColor = isLight ? "#ffffff" : "#0d0f12";
+        const textColor = isLight ? "#1e293b" : "#f1f5f9";
+
+        // Create an off-screen container formatted specifically for clean A4 printing
+        const exportWrapper = document.createElement("div");
+        exportWrapper.className = "sentinel-pdf-export-container";
+        exportWrapper.style.position = "absolute";
+        exportWrapper.style.left = "-9999px";
+        exportWrapper.style.top = "0";
+        exportWrapper.style.width = "790px";
+        exportWrapper.style.padding = "36px 40px";
+        exportWrapper.style.backgroundColor = bgColor;
+        exportWrapper.style.color = textColor;
+        exportWrapper.style.fontFamily = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
+        exportWrapper.style.lineHeight = "1.6";
+        exportWrapper.style.boxSizing = "border-box";
+
+        // Clone report content
+        exportWrapper.innerHTML = containerEl.innerHTML;
+
+        // Convert Chart.js canvases into high-quality static images so canvas context is retained
+        const origCanvases = containerEl.querySelectorAll("canvas");
+        const clonedCanvases = exportWrapper.querySelectorAll("canvas");
+
+        origCanvases.forEach((origCanvas, i) => {
+            if (clonedCanvases[i]) {
+                try {
+                    const dataUrl = origCanvas.toDataURL("image/png", 1.0);
+                    const img = document.createElement("img");
+                    img.src = dataUrl;
+                    img.style.width = "100%";
+                    img.style.maxHeight = "420px";
+                    img.style.objectFit = "contain";
+                    img.style.display = "block";
+                    img.style.margin = "16px 0";
+                    img.style.borderRadius = "10px";
+                    clonedCanvases[i].replaceWith(img);
+                } catch (err) {
+                    console.warn("Could not convert chart canvas to PNG:", err);
+                }
+            }
         });
+
+        // Strip non-printable UI buttons or action items
+        exportWrapper.querySelectorAll(".chart-card-actions, .chart-action-btn, .copy-btn, .code-block-header, .chat-actions-menu").forEach(el => el.remove());
+
+        document.body.appendChild(exportWrapper);
+
+        const opt = {
+            margin: [10, 10, 10, 10],
+            filename: `${titleSlug}-report.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { 
+                scale: 2, 
+                useCORS: true, 
+                logging: false,
+                backgroundColor: bgColor
+            },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+
+        try {
+            await html2pdf().set(opt).from(exportWrapper).save();
+            showToast("PDF Exported", "Research report PDF downloaded successfully.");
+        } catch (err) {
+            console.error("PDF generation failed:", err);
+            showToast("Export Failed", "Error rendering PDF document.");
+        } finally {
+            if (document.body.contains(exportWrapper)) {
+                document.body.removeChild(exportWrapper);
+            }
+        }
     }
 
-    // ── Create dropdown ───────────────────────────────────────────────────────
-    if (createBtn && createMenu) {
-        createBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            createMenu.classList.toggle("hidden");
-            contentsMenu.classList.add("hidden");
-            exportMenu.classList.add("hidden");
+    // ── Export as PDF file ────────────────────────────────────────────────────
+    if (exportPdfBtn) {
+        exportPdfBtn.addEventListener("click", () => {
+            if (exportMenu) exportMenu.classList.add("hidden");
+            exportReportAsPDF(document.getElementById("report-content"), currentTopic);
         });
     }
-
-    // Close all menus when clicking outside
-    document.addEventListener("click", () => {
-        contentsMenu.classList.add("hidden");
-        if (exportMenu) exportMenu.classList.add("hidden");
-        if (createMenu) createMenu.classList.add("hidden");
-    });
 
     // ── Copy to clipboard ─────────────────────────────────────────────────────
     if (copyBtn) {
