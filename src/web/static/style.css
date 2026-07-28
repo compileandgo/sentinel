@@ -2515,11 +2515,19 @@ body.light-theme .auth-card {
 }
 
 .auth-title {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--text-primary, #f8fafc);
-    letter-spacing: -0.4px;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
     margin: 0;
+    background: linear-gradient(180deg, #FFFFFF 20%, #94A3B8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+body.light-theme .auth-title {
+    background: linear-gradient(180deg, #0F172A 0%, #475569 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .auth-subtitle {

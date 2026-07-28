@@ -1233,9 +1233,21 @@ async def voice_stt_handler(file: UploadFile = File(...), user: AuthenticatedUse
         print(f"  [Voice STT Error] {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# Mount static folder
+# Mount static folder and HTML page routes
 static_path = Path(__file__).resolve().parent / "static"
 static_path.mkdir(parents=True, exist_ok=True)
+
+@app.get("/landing")
+async def get_landing_page():
+    landing_file = static_path / "landing.html"
+    if landing_file.exists():
+        return FileResponse(landing_file)
+    return FileResponse(static_path / "index.html")
+
+@app.get("/app")
+async def get_app_workspace():
+    return FileResponse(static_path / "index.html")
+
 app.mount("/", StaticFiles(directory=str(static_path), html=True), name="static")
 
 if __name__ == "__main__":

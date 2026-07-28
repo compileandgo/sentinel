@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel — Autonomous Multi-Agent Geopolitical Intelligence</title>
+    <link rel="stylesheet" href="style.css?v=20">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+    <style>
+        /* Landing Page Specific Spotlight & Layout Styles */
+        .landing-body {
+            overflow-y: auto !important;
+            height: auto !important;
+            min-height: 100vh;
+            position: relative;
+            background: #06080d;
+        }
+
+        body.light-theme.landing-body {
+            background: #f8fafc;
+        }
+
+        /* Ambient Top Spotlight Light Beam */
+        .top-spotlight {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 1200px;
+            height: 500px;
+            background: radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.16) 0%, rgba(0, 112, 243, 0.15) 35%, rgba(0, 0, 0, 0) 70%);
+            pointer-events: none;
+            z-index: 1;
+            filter: blur(20px);
+        }
+
+        body.light-theme .top-spotlight {
+            background: radial-gradient(ellipse at 50% 0%, rgba(0, 112, 243, 0.15) 0%, rgba(148, 163, 184, 0.2) 40%, rgba(255, 255, 255, 0) 70%);
+        }
+
+        .landing-nav {
+            position: sticky;
+            top: 0;
+            width: 100%;
+            z-index: 100;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            background: rgba(6, 8, 13, 0.7);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 16px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        body.light-theme .landing-nav {
+            background: rgba(248, 250, 252, 0.8);
+            border-bottom-color: rgba(226, 232, 240, 0.8);
+        }
+
+        .landing-nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: #f8fafc;
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+        }
+
+        body.light-theme .landing-nav-brand {
+            color: #0f172a;
+        }
+
+        .landing-nav-links {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .landing-nav-links a {
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .landing-nav-links a:hover {
+            color: #f8fafc;
+        }
+
+        body.light-theme .landing-nav-links a {
+            color: #64748b;
+        }
+
+        body.light-theme .landing-nav-links a:hover {
+            color: #0f172a;
+        }
+
+        .landing-nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .nav-btn-secondary {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 8px 16px;
+            transition: color 0.2s ease;
+            text-decoration: none;
+        }
+
+        .nav-btn-secondary:hover {
+            color: #ffffff;
+        }
+
+        .nav-btn-primary {
+            background: linear-gradient(135deg, #0070f3 0%, #0051a8 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 24px;
+            padding: 9px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            box-shadow: 0 4px 16px rgba(0, 112, 243, 0.35);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(0, 112, 243, 0.45);
+        }
+
+        /* Hero Section */
+        .hero-section {
+            position: relative;
+            z-index: 2;
+            padding: 80px 20px 60px;
+            max-width: 1100px;
+            margin: 0 auto;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #cbd5e1;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 24px;
+            backdrop-filter: blur(10px);
+        }
+
+        body.light-theme .hero-badge {
+            background: rgba(255, 255, 255, 0.8);
+            border-color: rgba(226, 232, 240, 0.8);
+            color: #475569;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+        }
+
+        /* Smooth Metallic Gradient Heading */
+        .hero-title {
+            font-size: 56px;
+            font-weight: 800;
+            line-height: 1.15;
+            letter-spacing: -1.5px;
+            max-width: 900px;
+            margin: 0 0 20px;
+            background: linear-gradient(180deg, #FFFFFF 20%, #94A3B8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        body.light-theme .hero-title {
+            background: linear-gradient(180deg, #0F172A 0%, #475569 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-subtitle {
+            font-size: 18px;
+            color: #94a3b8;
+            line-height: 1.6;
+            max-width: 680px;
+            margin: 0 0 36px;
+            font-weight: 400;
+        }
+
+        body.light-theme .hero-subtitle {
+            color: #64748b;
+        }
+
+        .hero-cta-group {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 60px;
+        }
+
+        /* Workspace Preview Container */
+        .hero-preview-frame {
+            width: 100%;
+            max-width: 1040px;
+            border-radius: 20px;
+            background: rgba(13, 18, 28, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(30px);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+            overflow: hidden;
+            position: relative;
+            transform: perspective(1000px) rotateX(2deg);
+            transition: transform 0.5s ease;
+        }
+
+        .hero-preview-frame:hover {
+            transform: perspective(1000px) rotateX(0deg);
+        }
+
+        body.light-theme .hero-preview-frame {
+            background: #ffffff;
+            border-color: rgba(226, 232, 240, 0.9);
+            box-shadow: 0 30px 60px rgba(15, 23, 42, 0.08);
+        }
+
+        .frame-header-bar {
+            height: 40px;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 8px;
+        }
+
+        .frame-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .dot-red { background: #ff5f56; }
+        .dot-yellow { background: #ffbd2e; }
+        .dot-green { background: #27c93f; }
+
+        .frame-body {
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .mockup-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            width: 100%;
+        }
+
+        /* Features Section */
+        .features-section {
+            max-width: 1100px;
+            margin: 80px auto;
+            padding: 0 20px;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .section-title {
+            font-size: 38px;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 12px;
+            background: linear-gradient(180deg, #FFFFFF 20%, #94A3B8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        body.light-theme .section-title {
+            background: linear-gradient(180deg, #0F172A 0%, #475569 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .section-subtitle {
+            font-size: 16px;
+            color: #94a3b8;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        body.light-theme .section-subtitle {
+            color: #64748b;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: rgba(13, 18, 28, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 32px 28px;
+            backdrop-filter: blur(20px);
+            transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(0, 112, 243, 0.3);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        body.light-theme .feature-card {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+        }
+
+        body.light-theme .feature-card:hover {
+            border-color: #0070f3;
+            box-shadow: 0 12px 32px rgba(0, 112, 243, 0.08);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: rgba(0, 112, 243, 0.12);
+            color: #0070f3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            border: 1px solid rgba(0, 112, 243, 0.2);
+        }
+
+        .feature-card-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #f8fafc;
+            margin-bottom: 10px;
+        }
+
+        body.light-theme .feature-card-title {
+            color: #0f172a;
+        }
+
+        .feature-card-desc {
+            font-size: 14px;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+
+        body.light-theme .feature-card-desc {
+            color: #64748b;
+        }
+
+        /* Footer */
+        .landing-footer {
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 60px 40px 30px;
+            max-width: 1100px;
+            margin: 60px auto 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+        }
+
+        body.light-theme .landing-footer {
+            border-top-color: #e2e8f0;
+        }
+
+        .footer-watermark {
+            font-size: 72px;
+            font-weight: 900;
+            letter-spacing: -3px;
+            opacity: 0.15;
+            background: linear-gradient(180deg, #FFFFFF 0%, rgba(255, 255, 255, 0) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            user-select: none;
+        }
+
+        body.light-theme .footer-watermark {
+            background: linear-gradient(180deg, #0F172A 0%, rgba(15, 23, 42, 0) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        @media (max-width: 768px) {
+            .landing-nav { padding: 16px 20px; }
+            .landing-nav-links { display: none; }
+            .hero-title { font-size: 36px; }
+            .features-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body class="landing-body">
+    <!-- Ambient Overhead Spotlight Beam -->
+    <div class="top-spotlight"></div>
+
+    <!-- Navigation Header -->
+    <nav class="landing-nav">
+        <a href="/landing" class="landing-nav-brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0070f3" stroke-width="2">
+                <ellipse cx="12" cy="12" rx="13.51" ry="6.14" transform="translate(-4.97 12) rotate(-45)"></ellipse>
+                <ellipse cx="12" cy="12" rx="6.14" ry="13.51" transform="translate(-4.97 12) rotate(-45)"></ellipse>
+                <circle cx="12" cy="12" r="1.5" fill="#0070f3"></circle>
+            </svg>
+            <span>Sentinel</span>
+        </a>
+
+        <ul class="landing-nav-links">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#architecture">Architecture</a></li>
+            <li><a href="#rag">Hybrid RAG</a></li>
+            <li><a href="#scaling">Scale</a></li>
+        </ul>
+
+        <div class="landing-nav-actions">
+            <a href="/app" class="nav-btn-secondary">Sign In</a>
+            <a href="/app" class="nav-btn-primary">
+                <span>Launch App</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-badge">
+            <span>✨ Autonomous Multi-Agent Research System</span>
+        </div>
+
+        <h1 class="hero-title">Empower Your Intelligence with Multi-Agent AI</h1>
+
+        <p class="hero-subtitle">
+            Sentinel breaks complex topics down automatically, searches multi-channel sources, verifies facts with dual-LLM cross-examination, and compiles complete cited intelligence briefs.
+        </p>
+
+        <div class="hero-cta-group">
+            <a href="/app" class="nav-btn-primary" style="padding: 12px 28px; font-size: 15px;">
+                <span>Start Researching</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </a>
+            <a href="#architecture" class="nav-btn-secondary" style="font-size: 15px;">View System Architecture →</a>
+        </div>
+
+        <!-- Product Preview Frame -->
+        <div class="hero-preview-frame">
+            <div class="frame-header-bar">
+                <div class="frame-dot dot-red"></div>
+                <div class="frame-dot dot-yellow"></div>
+                <div class="frame-dot dot-green"></div>
+                <span style="margin-left: 12px; font-size: 12px; color: #64748b;">sentinel.intelligence/workspace</span>
+            </div>
+            <div class="frame-body">
+                <div style="display: flex; align-items: center; gap: 12px; max-width: 600px; width: 100%; padding: 14px 20px; background: rgba(8, 10, 15, 0.8); border: 1px solid rgba(0, 112, 243, 0.3); border-radius: 30px; box-shadow: 0 0 20px rgba(0, 112, 243, 0.2);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0070f3" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <span style="font-size: 14px; color: #f8fafc; font-weight: 500;">Analyze Global Semiconductor Supply Chain Vulnerabilities 2026</span>
+                </div>
+                <div class="mockup-grid">
+                    <div style="padding: 20px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 14px; text-align: left;">
+                        <span style="font-size: 11px; color: #0070f3; font-weight: 700; text-transform: uppercase;">Lead Researcher Node</span>
+                        <h4 style="font-size: 15px; color: #f8fafc; margin: 6px 0;">3 Parallel Subtasks Spawned</h4>
+                        <p style="font-size: 12px; color: #94a3b8; margin: 0;">Deconstructed supply chain routes, raw material bottlenecks, and market impact.</p>
+                    </div>
+                    <div style="padding: 20px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 14px; text-align: left;">
+                        <span style="font-size: 11px; color: #38bdf8; font-weight: 700; text-transform: uppercase;">3-Channel RAG Engine</span>
+                        <h4 style="font-size: 15px; color: #f8fafc; margin: 6px 0;">Pinecone + BM25 + Postgres FTS</h4>
+                        <p style="font-size: 12px; color: #94a3b8; margin: 0;">Merged retrieval via Reciprocal Rank Fusion (RRF k=60).</p>
+                    </div>
+                    <div style="padding: 20px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 14px; text-align: left;">
+                        <span style="font-size: 11px; color: #34d399; font-weight: 700; text-transform: uppercase;">Cross-Examiner Node</span>
+                        <h4 style="font-size: 15px; color: #f8fafc; margin: 6px 0;">Gemini 2.0 + Groq Consensus</h4>
+                        <p style="font-size: 12px; color: #94a3b8; margin: 0;">Verified citation claims & source bias scoring.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features-section">
+        <div class="section-header">
+            <h2 class="section-title">Innovative Architecture at Your Fingertips</h2>
+            <p class="section-subtitle">Built from the ground up for high-concurrency research, deterministic state safety, and verified citations.</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+                </div>
+                <h3 class="feature-card-title">LangGraph Agent State Machine</h3>
+                <p class="feature-card-desc">Cyclic execution graph with parallel subagent workers, human-in-the-loop plan gates, and dynamic re-research loops.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                </div>
+                <h3 class="feature-card-title">3-Channel Hybrid Retrieval</h3>
+                <p class="feature-card-desc">Combines 768-dim Pinecone dense vectors, local BM25 TF-IDF sparse scoring, and Supabase Postgres GIN Full-Text Search fused via RRF.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+                </div>
+                <h3 class="feature-card-title">Distributed Redis State Manager</h3>
+                <p class="feature-card-desc">Run state persists across server restarts in Upstash Redis Hashes. Real-time log streaming via Redis Pub/Sub & Server-Sent Events.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="landing-footer">
+        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+            <a href="/landing" class="landing-nav-brand">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0070f3" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle></svg>
+                <span>Sentinel Platform</span>
+            </a>
+            <span style="font-size: 13px; color: #64748b;">© 2026 Sentinel Intelligence. All rights reserved.</span>
+        </div>
+        <div class="footer-watermark">Sentinel</div>
+    </footer>
+</body>
+</html>
