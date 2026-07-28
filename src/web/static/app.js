@@ -761,10 +761,10 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    if (tabLogin && tabSignup && loginForm && signupForm) {
-        tabLogin.addEventListener("click", () => setAuthView("login"));
-        tabSignup.addEventListener("click", () => setAuthView("signup"));
+    if (tabLogin) tabLogin.addEventListener("click", () => setAuthView("login"));
+    if (tabSignup) tabSignup.addEventListener("click", () => setAuthView("signup"));
 
+    if (loginForm) {
         loginForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             authFeedback.textContent = "Signing in...";
@@ -780,9 +780,10 @@ document.addEventListener("DOMContentLoaded", () => {
             } else {
                 authFeedback.textContent = "Success!";
                 authFeedback.className = "auth-feedback success";
-            }
         });
+    }
 
+    if (signupForm) {
         signupForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             authFeedback.textContent = "Creating account...";
