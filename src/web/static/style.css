@@ -13,13 +13,13 @@
     --color-gunmetal: #343A40;
     --color-shadow-grey: #212529;
 
-    --bg-black: var(--color-shadow-grey);
-    --bg-sidebar: #191c1f;
-    --bg-card: rgba(52, 58, 64, 0.85);
-    --bg-card-hover: rgba(73, 80, 87, 0.85);
-    --bg-panel: rgba(52, 58, 64, 0.85);
-    --border-main: rgba(233, 236, 239, 0.12);
-    --border-card: rgba(233, 236, 239, 0.12);
+    --bg-black: #0d0f12;
+    --bg-sidebar: #111317;
+    --bg-card: rgba(22, 26, 32, 0.88);
+    --bg-card-hover: rgba(34, 39, 48, 0.88);
+    --bg-panel: rgba(22, 26, 32, 0.88);
+    --border-main: rgba(233, 236, 239, 0.09);
+    --border-card: rgba(233, 236, 239, 0.09);
     
     --text-primary: var(--color-bright-snow);
     --text-secondary: var(--color-platinum);
@@ -70,12 +70,12 @@ body.light-theme {
     background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-    background: rgba(233, 236, 239, 0.2);
+    background: rgba(233, 236, 239, 0.18);
     border-radius: 2px;
     transition: background 0.2s ease;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(233, 236, 239, 0.4);
+    background: rgba(233, 236, 239, 0.35);
 }
 
 html {
@@ -86,7 +86,7 @@ html {
 }
 
 body {
-    background: radial-gradient(circle at 50% 30%, #343A40 0%, #212529 65%, #181b1e 100%);
+    background: radial-gradient(circle at 50% 25%, #1d2127 0%, #111317 60%, #090a0d 100%);
     color: var(--text-primary);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
