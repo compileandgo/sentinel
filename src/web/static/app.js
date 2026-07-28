@@ -780,6 +780,7 @@ document.addEventListener("DOMContentLoaded", () => {
             } else {
                 authFeedback.textContent = "Success!";
                 authFeedback.className = "auth-feedback success";
+            }
         });
     }
 
