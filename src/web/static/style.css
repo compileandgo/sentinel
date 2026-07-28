@@ -13,13 +13,13 @@
     --color-gunmetal: #343A40;
     --color-shadow-grey: #212529;
 
-    --bg-black: #0d0f12;
+    --bg-black: #08090c;
     --bg-sidebar: #111317;
-    --bg-card: rgba(22, 26, 32, 0.88);
-    --bg-card-hover: rgba(34, 39, 48, 0.88);
-    --bg-panel: rgba(22, 26, 32, 0.88);
-    --border-main: rgba(233, 236, 239, 0.09);
-    --border-card: rgba(233, 236, 239, 0.09);
+    --bg-card: #111317;
+    --bg-card-hover: #181b21;
+    --bg-panel: #111317;
+    --border-main: rgba(233, 236, 239, 0.08);
+    --border-card: rgba(233, 236, 239, 0.08);
     
     --text-primary: var(--color-bright-snow);
     --text-secondary: var(--color-platinum);
@@ -3818,10 +3818,10 @@ body.light-theme {
         min-width: 0 !important;      /* lets 1fr shrink correctly */
         height: auto !important;
         margin: 14px 0 !important;
-        background-color: var(--bg-card) !important;
+        background-color: var(--bg-sidebar) !important;
         border: 1px solid var(--border-main) !important;
         border-radius: 12px !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
         display: flex !important;
         flex-direction: column !important;
         overflow: hidden !important;
@@ -3846,10 +3846,10 @@ body.light-theme {
         min-height: 0 !important;
         display: flex !important;
         flex-direction: column !important;
-        background-color: var(--bg-card) !important;
+        background-color: var(--bg-sidebar) !important;
         border: 1px solid var(--border-main) !important;
         border-radius: 12px !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
         overflow: hidden !important;
     }
 
