@@ -53,8 +53,8 @@ def _duckduckgo_search(query: str, subagent_id: str, max_results: int = 3) -> Li
 
 def search(query: str, subagent_id: str = "lead", max_results: int = 4, enable_rss: bool = False) -> List[RawIntel]:
     """
-    Primary web search interface.
-    Uses Tavily / DuckDuckGo web search API exclusively for recent web data.
+    Primary multi-source intelligence search interface.
+    Combines Web Search (Tavily/DuckDuckGo) with Keyless Open Databases (Wikidata, OpenAlex, World Bank, PubMed).
     """
     from src.tools.llm import thread_local
     run_id = getattr(thread_local, "run_id", None)
@@ -70,6 +70,15 @@ def search(query: str, subagent_id: str = "lead", max_results: int = 4, enable_r
         results = _tavily_search(query, subagent_id, max_results)
     else:
         results = _duckduckgo_search(query, subagent_id, max_results)
+
+    # Automatically query keyless open databases (Wikidata, OpenAlex, World Bank, PubMed)
+    try:
+        from src.tools.open_data import query_all_open_databases
+        open_data_results = query_all_open_databases(query, subagent_id=subagent_id, max_results=1)
+        if open_data_results:
+            results.extend(open_data_results)
+    except Exception as e:
+        print(f"  [OpenData Search Warning]: {e}")
 
     return results
 
