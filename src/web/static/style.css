@@ -1,22 +1,33 @@
 @import url('Fonts/WEB/css/quicksand.css');
 
-/* Stark OLED Gemini Deep Research CSS System (Sentinel Blue Theme) */
+/* Stark OLED Gemini Deep Research CSS System (Coolors Palette Theme) */
 :root {
-    --bg-black: #060911;
-    --bg-sidebar: #0b101c;
-    --bg-card: rgba(13, 18, 28, 0.85);
-    --bg-card-hover: rgba(22, 32, 48, 0.85);
-    --bg-panel: rgba(13, 18, 28, 0.85);
-    --border-main: rgba(255, 255, 255, 0.08);
-    --border-card: rgba(255, 255, 255, 0.08);
+    /* Coolors Palette Tokens */
+    --color-bright-snow: #FBF9FA;
+    --color-platinum: #E9ECEF;
+    --color-alabaster-grey: #DEE2E6;
+    --color-pale-slate-light: #CED4DA;
+    --color-pale-slate-mid: #ADB5BD;
+    --color-slate-grey: #6C757D;
+    --color-iron-grey: #495057;
+    --color-gunmetal: #343A40;
+    --color-shadow-grey: #212529;
+
+    --bg-black: var(--color-shadow-grey);
+    --bg-sidebar: #191c1f;
+    --bg-card: rgba(52, 58, 64, 0.85);
+    --bg-card-hover: rgba(73, 80, 87, 0.85);
+    --bg-panel: rgba(52, 58, 64, 0.85);
+    --border-main: rgba(233, 236, 239, 0.12);
+    --border-card: rgba(233, 236, 239, 0.12);
     
-    --text-primary: #f8fafc;
-    --text-secondary: #cbd5e1;
-    --text-muted: #8E918F;
-    --text-link: #0070f3;
+    --text-primary: var(--color-bright-snow);
+    --text-secondary: var(--color-platinum);
+    --text-muted: var(--color-pale-slate-mid);
+    --text-link: var(--color-bright-snow);
     
-    --gemini-blue: #0070f3;
-    --gemini-purple: #888888;
+    --gemini-blue: var(--color-platinum);
+    --gemini-purple: var(--color-slate-grey);
     --gemini-red: #ee0000;
     
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -25,21 +36,21 @@
 }
 
 body.light-theme {
-    --bg-black: #f8fafc;
-    --bg-sidebar: #f1f5f9;
+    --bg-black: var(--color-bright-snow);
+    --bg-sidebar: var(--color-platinum);
     --bg-card: #ffffff;
-    --bg-card-hover: #f8fafc;
+    --bg-card-hover: var(--color-alabaster-grey);
     --bg-panel: #ffffff;
-    --border-main: #e2e8f0;
-    --border-card: #e2e8f0;
+    --border-main: var(--color-pale-slate-light);
+    --border-card: var(--color-pale-slate-light);
     
-    --text-primary: #0f172a;
-    --text-secondary: #334155;
-    --text-muted: #64748b;
-    --text-link: #0070f3;
+    --text-primary: var(--color-shadow-grey);
+    --text-secondary: var(--color-iron-grey);
+    --text-muted: var(--color-slate-grey);
+    --text-link: var(--color-shadow-grey);
     
-    --gemini-blue: #0070f3;
-    --gemini-purple: #71717a;
+    --gemini-blue: var(--color-iron-grey);
+    --gemini-purple: var(--color-slate-grey);
     --gemini-red: #ee0000;
 }
 
@@ -52,19 +63,19 @@ body.light-theme {
 
 /* Custom sleek scrollbar style */
 ::-webkit-scrollbar {
-    width: 3px;
-    height: 3px;
+    width: 4px;
+    height: 4px;
 }
 ::-webkit-scrollbar-track {
     background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.12);
-    border-radius: 1.5px;
+    background: rgba(233, 236, 239, 0.2);
+    border-radius: 2px;
     transition: background 0.2s ease;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: rgba(233, 236, 239, 0.4);
 }
 
 html {
@@ -75,7 +86,7 @@ html {
 }
 
 body {
-    background: radial-gradient(circle at 50% 30%, #0b111e 0%, #050811 60%, #020307 100%);
+    background: radial-gradient(circle at 50% 30%, #343A40 0%, #212529 65%, #181b1e 100%);
     color: var(--text-primary);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
@@ -86,7 +97,7 @@ body {
 }
 
 body.light-theme {
-    background: radial-gradient(circle at 50% 30%, #eff6ff 0%, #dbeafe 100%);
+    background: radial-gradient(circle at 50% 30%, #FBF9FA 0%, #E9ECEF 60%, #DEE2E6 100%);
 }
 
 /* App Wrapper Grid */
