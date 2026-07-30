@@ -2,6 +2,8 @@
 
 Sentinel is an enterprise-grade, autonomous multi-agent research pipeline designed to synthesize formal, academic-grade geopolitical and strategic research reports from raw web intelligence and high-dimensional knowledge graphs. Built on top of **LangGraph**, **Upstash Redis**, **Pinecone**, and **Supabase**, Sentinel coordinates parallel-agent execution, hybrid RAG retrieval, cross-model bias auditing, timeline compilation, and real-time SSE stream reporting.
 
+![Sentinel Intelligence Platform Preview](docs/Screenshot_2026-07-29-030347.png)
+
 ---
 
 ## 1. System Architecture
