@@ -3605,11 +3605,11 @@ document.addEventListener("DOMContentLoaded", () => {
     // ── Settings Dialog Modal ────────────────────────────────────────────────
     if (settingsBtn) {
         settingsBtn.addEventListener("click", () => {
-            const oldOverlay = document.querySelector(".modal-overlay");
+            const oldOverlay = document.querySelector(".dynamic-modal-overlay");
             if (oldOverlay) oldOverlay.remove();
 
             const overlay = document.createElement("div");
-            overlay.className = "modal-overlay";
+            overlay.className = "modal-overlay dynamic-modal-overlay";
             overlay.innerHTML = `
                 <div class="modal-content">
                     <div class="modal-header">
@@ -3735,11 +3735,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function openRenameModal(filename, currentTitle) {
-        const oldOverlay = document.querySelector(".modal-overlay");
+        const oldOverlay = document.querySelector(".dynamic-modal-overlay");
         if (oldOverlay) oldOverlay.remove();
 
         const overlay = document.createElement("div");
-        overlay.className = "modal-overlay";
+        overlay.className = "modal-overlay dynamic-modal-overlay";
         overlay.innerHTML = `
             <div class="modal-content" style="max-width: 400px;">
                 <div class="modal-header">
@@ -3837,11 +3837,11 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        const oldOverlay = document.querySelector(".modal-overlay");
+        const oldOverlay = document.querySelector(".dynamic-modal-overlay");
         if (oldOverlay) oldOverlay.remove();
 
         const overlay = document.createElement("div");
-        overlay.className = "modal-overlay";
+        overlay.className = "modal-overlay dynamic-modal-overlay";
         overlay.innerHTML = `
             <div class="modal-content" style="max-width: 400px;">
                 <div class="modal-header">
