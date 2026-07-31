@@ -1244,8 +1244,7 @@ async def voice_stt_handler(file: UploadFile = File(...), user: AuthenticatedUse
 # ── AI Image Studio Endpoints ───────────────────────────────────────────────
 
 MODEL_DISPLAY_NAMES = {
-    "@cf/black-forest-labs/flux-2-dev": "Flux 2 Dev (Ultra HD Quality)",
-    "@cf/black-forest-labs/flux-1-schnell": "Flux 1 Schnell (Fast & Sharp)",
+    "@cf/black-forest-labs/flux-1-schnell": "Flux 1 Schnell (Photorealism & HD)",
     "@cf/stabilityai/stable-diffusion-xl-base-1.0": "SDXL Base 1.0 (Artistic)",
     "@cf/bytedance/stable-diffusion-xl-lightning": "SDXL Lightning (Quick Draft)",
     "@cf/lykon/dreamshaper-8-lcm": "DreamShaper 8 (Anime & Fantasy)",
@@ -1260,7 +1259,7 @@ ASPECT_RATIO_DIMS = {
 
 class ImageGenerateRequest(BaseModel):
     prompt: str
-    model: Optional[str] = "@cf/black-forest-labs/flux-2-dev"
+    model: Optional[str] = "@cf/black-forest-labs/flux-1-schnell"
     aspect_ratio: Optional[str] = "1:1"
     enhance_prompt: Optional[bool] = True
 
@@ -1330,8 +1329,8 @@ async def generate_image_endpoint(req: ImageGenerateRequest, user: Authenticated
         )
 
     # 2. Model & Aspect Ratio resolution
-    target_model = req.model if req.model in MODEL_DISPLAY_NAMES else "@cf/black-forest-labs/flux-2-dev"
-    model_name = MODEL_DISPLAY_NAMES.get(target_model, "Flux 2 Dev (Ultra HD Quality)")
+    target_model = req.model if req.model in MODEL_DISPLAY_NAMES else "@cf/black-forest-labs/flux-1-schnell"
+    model_name = MODEL_DISPLAY_NAMES.get(target_model, "Flux 1 Schnell (Photorealism & HD)")
     aspect_ratio = req.aspect_ratio if req.aspect_ratio in ASPECT_RATIO_DIMS else "1:1"
     width, height = ASPECT_RATIO_DIMS[aspect_ratio]
 

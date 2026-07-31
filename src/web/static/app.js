@@ -3998,7 +3998,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const lightboxCopyBtn = document.getElementById("lightbox-copy-btn");
     const lightboxDeleteBtn = document.getElementById("lightbox-delete-btn");
 
-    let selectedModel = "@cf/black-forest-labs/flux-2-dev";
+    let selectedModel = "@cf/black-forest-labs/flux-1-schnell";
     const enhancePromptToggle = document.getElementById("enhance-prompt-toggle");
     let selectedAspectRatio = "1:1";
     let isImageStudioActive = false;

@@ -44,7 +44,7 @@
             securityLevel: 'loose'
         });
     </script>
-    <link rel="stylesheet" href="style.css?v=106">
+    <link rel="stylesheet" href="style.css?v=107">
 </head>
 <body>
     <div class="app-container hidden">
@@ -234,27 +234,16 @@
                         <div class="form-group">
                             <label class="form-label">Select Model & Style</label>
                             <div class="model-selection-grid">
-                                <div class="model-card active" data-model="@cf/black-forest-labs/flux-2-dev">
-                                    <div class="model-card-header">
-                                        <svg class="model-icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                                        </svg>
-                                        <span class="model-name">Flux 2 Dev</span>
-                                        <span class="model-badge">Best Quality</span>
-                                    </div>
-                                    <div class="model-desc">Ultra HD photorealism — state-of-the-art detail & clarity</div>
-                                </div>
-
-                                <div class="model-card" data-model="@cf/black-forest-labs/flux-1-schnell">
+                                <div class="model-card active" data-model="@cf/black-forest-labs/flux-1-schnell">
                                     <div class="model-card-header">
                                         <svg class="model-icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                                             <circle cx="12" cy="13" r="4"></circle>
                                         </svg>
                                         <span class="model-name">Flux 1 Schnell</span>
-                                        <span class="model-badge">Fast</span>
+                                        <span class="model-badge">Recommended</span>
                                     </div>
-                                    <div class="model-desc">Sharp & fast — great balance of speed and photorealism</div>
+                                    <div class="model-desc">Photorealism, sharp details & fast generation</div>
                                 </div>
 
                                 <div class="model-card" data-model="@cf/stabilityai/stable-diffusion-xl-base-1.0">
@@ -265,6 +254,16 @@
                                         <span class="model-name">SDXL Base 1.0</span>
                                     </div>
                                     <div class="model-desc">Artistic, cinematic & landscape imagery</div>
+                                </div>
+
+                                <div class="model-card" data-model="@cf/bytedance/stable-diffusion-xl-lightning">
+                                    <div class="model-card-header">
+                                        <svg class="model-icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                                        </svg>
+                                        <span class="model-name">SDXL Lightning</span>
+                                    </div>
+                                    <div class="model-desc">Ultra-fast 1-step render engine for quick drafts</div>
                                 </div>
 
                                 <div class="model-card" data-model="@cf/lykon/dreamshaper-8-lcm">
@@ -990,6 +989,6 @@
     </div>
 
     <script src="voice.js?v=1"></script>
-    <script src="app.js?v=106"></script>
+    <script src="app.js?v=107"></script>
 </body>
 </html>
