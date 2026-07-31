@@ -1170,18 +1170,18 @@ document.addEventListener("DOMContentLoaded", () => {
             } else if (btn.id === "images-btn") {
                 closeSearchView();
                 openImageStudioView();
+            } else if (btn.id === "new-research-nav") {
+                closeSearchView();
+                closeImageStudioView();
+                navButtons.forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
             } else {
                 closeSearchView();
                 closeImageStudioView();
-
-                // Set active class on non-search buttons
                 navButtons.forEach(b => b.classList.remove("active"));
                 btn.classList.add("active");
-
-                // If it's not the new chat or images button, show toast
-                if (btn.id !== "new-research-nav" && btn.id !== "images-btn") {
-                    showToast("Enterprise Feature", `"${btn.querySelector('span').textContent}" is an enterprise-only feature.`);
-                }
+                const label = btn.querySelector('span') ? btn.querySelector('span').textContent : "Feature";
+                showToast("Enterprise Feature", `"${label}" is an enterprise-only feature.`);
             }
         });
     });
