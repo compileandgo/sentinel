@@ -4768,8 +4768,9 @@ body.light-theme .chart-action-btn:hover {
     flex-wrap: wrap;
 }
 
-.model-icon {
-    font-size: 16px;
+.model-icon-svg {
+    color: var(--gemini-blue, #0070f3);
+    flex-shrink: 0;
 }
 
 .model-name {

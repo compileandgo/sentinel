@@ -44,7 +44,7 @@
             securityLevel: 'loose'
         });
     </script>
-    <link rel="stylesheet" href="style.css?v=101">
+    <link rel="stylesheet" href="style.css?v=102">
 </head>
 <body>
     <div class="app-container hidden">
@@ -236,7 +236,10 @@
                             <div class="model-selection-grid">
                                 <div class="model-card active" data-model="@cf/black-forest-labs/flux-1-schnell">
                                     <div class="model-card-header">
-                                        <span class="model-icon">📸</span>
+                                        <svg class="model-icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                            <circle cx="12" cy="13" r="4"></circle>
+                                        </svg>
                                         <span class="model-name">Flux 1. Schnell</span>
                                         <span class="model-badge">Recommended</span>
                                     </div>
@@ -245,7 +248,9 @@
 
                                 <div class="model-card" data-model="@cf/stabilityai/stable-diffusion-xl-base-1.0">
                                     <div class="model-card-header">
-                                        <span class="model-icon">🎨</span>
+                                        <svg class="model-icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.92 0 1.7-.71 1.7-1.65 0-.44-.18-.84-.45-1.14-.26-.3-.42-.69-.42-1.12 0-.94.76-1.7 1.7-1.7h2.47c3.1 0 5.6-2.5 5.6-5.6 0-4.9-4.08-8.9-9.1-8.89z"></path>
+                                        </svg>
                                         <span class="model-name">SDXL Base 1.0</span>
                                     </div>
                                     <div class="model-desc">High quality artistic, cinematic & landscape images</div>
@@ -253,7 +258,9 @@
 
                                 <div class="model-card" data-model="@cf/bytedance/stable-diffusion-xl-lightning">
                                     <div class="model-card-header">
-                                        <span class="model-icon">⚡</span>
+                                        <svg class="model-icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                                        </svg>
                                         <span class="model-name">SDXL Lightning</span>
                                     </div>
                                     <div class="model-desc">Ultra-fast 1-step render engine for quick drafts</div>
@@ -261,7 +268,9 @@
 
                                 <div class="model-card" data-model="@cf/lykon/dreamshaper-8-lcm">
                                     <div class="model-card-header">
-                                        <span class="model-icon">🧙</span>
+                                        <svg class="model-icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M12 2l2.4 5.4L20 9.8l-4 4.3 1.1 5.9L12 17.2l-5.1 2.8 1.1-5.9-4-4.3 5.6-2.4z"></path>
+                                        </svg>
                                         <span class="model-name">DreamShaper 8</span>
                                     </div>
                                     <div class="model-desc">Anime, 3D artwork, fantasy & illustrative styles</div>
@@ -965,6 +974,6 @@
     </div>
 
     <script src="voice.js?v=1"></script>
-    <script src="app.js?v=101"></script>
+    <script src="app.js?v=102"></script>
 </body>
 </html>

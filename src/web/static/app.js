@@ -4168,7 +4168,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 await navigator.clipboard.write([
                     new ClipboardItem({ [blob.type]: blob })
                 ]);
-                lightboxCopyBtn.innerHTML = `<span>Copied! ✓</span>`;
+                lightboxCopyBtn.innerHTML = `<span>Copied</span>`;
                 setTimeout(() => {
                     lightboxCopyBtn.innerHTML = `
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
