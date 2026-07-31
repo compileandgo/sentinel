@@ -1178,8 +1178,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 navButtons.forEach(b => b.classList.remove("active"));
                 btn.classList.add("active");
 
-                // If it's not the new chat button, show toast
-                if (btn.id !== "new-research-nav") {
+                // If it's not the new chat or images button, show toast
+                if (btn.id !== "new-research-nav" && btn.id !== "images-btn") {
                     showToast("Enterprise Feature", `"${btn.querySelector('span').textContent}" is an enterprise-only feature.`);
                 }
             }
@@ -3148,6 +3148,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function loadBriefContent(filename) {
         closeSearchView();
+        closeImageStudioView();
         if (window.innerWidth <= 768 && sidebarElement) {
             sidebarElement.classList.add("collapsed");
         }
