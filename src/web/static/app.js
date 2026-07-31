@@ -1167,8 +1167,12 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             if (btn.id === "search-chats-btn") {
                 openSearchView();
+            } else if (btn.id === "images-btn") {
+                closeSearchView();
+                openImageStudioView();
             } else {
                 closeSearchView();
+                closeImageStudioView();
 
                 // Set active class on non-search buttons
                 navButtons.forEach(b => b.classList.remove("active"));
@@ -3889,6 +3893,321 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
     };
+
+    // ── AI Image Studio Controller ──────────────────────────────────────────────
+    const imagesBtn = document.getElementById("images-btn");
+    const imageStudioView = document.getElementById("image-studio-view");
+    const imagePromptInput = document.getElementById("image-prompt-input");
+    const generateImageBtn = document.getElementById("generate-image-btn");
+    const imageGalleryGrid = document.getElementById("image-gallery-grid");
+    const quotaText = document.getElementById("quota-text");
+    const imageLightboxModal = document.getElementById("image-lightbox-modal");
+    const lightboxCloseBtn = document.getElementById("lightbox-close-btn");
+    const lightboxImg = document.getElementById("lightbox-img");
+    const lightboxTitle = document.getElementById("lightbox-title");
+    const lightboxPrompt = document.getElementById("lightbox-prompt");
+    const lightboxModel = document.getElementById("lightbox-model");
+    const lightboxRatio = document.getElementById("lightbox-ratio");
+    const lightboxDate = document.getElementById("lightbox-date");
+    const lightboxDownloadBtn = document.getElementById("lightbox-download-btn");
+    const lightboxCopyBtn = document.getElementById("lightbox-copy-btn");
+    const lightboxDeleteBtn = document.getElementById("lightbox-delete-btn");
+
+    let selectedModel = "@cf/black-forest-labs/flux-1-schnell";
+    let selectedAspectRatio = "1:1";
+    let isImageStudioActive = false;
+    let userGeneratedImages = [];
+    let activeLightboxImageId = null;
+
+    // Navigation Toggle for Images Tab
+    if (imagesBtn && imageStudioView) {
+        imagesBtn.addEventListener("click", () => {
+            if (isImageStudioActive) return;
+            openImageStudioView();
+        });
+    }
+
+    function openImageStudioView() {
+        isImageStudioActive = true;
+        imageStudioView.classList.remove("hidden");
+
+        // Update active navbar button
+        const navButtons = document.querySelectorAll(".sidebar-nav .nav-btn");
+        navButtons.forEach(b => {
+            if (b.id === "images-btn") {
+                b.classList.add("active");
+            } else {
+                b.classList.remove("active");
+            }
+        });
+
+        // Hide search view if open
+        if (typeof closeSearchView === "function") closeSearchView();
+
+        // Fetch image history & quota status
+        fetchImageHistory();
+    }
+
+    function closeImageStudioView() {
+        if (!isImageStudioActive) return;
+        isImageStudioActive = false;
+        imageStudioView.classList.add("hidden");
+        if (imagesBtn) imagesBtn.classList.remove("active");
+    }
+
+    // Model selection cards click handler
+    const modelCards = document.querySelectorAll(".model-card");
+    modelCards.forEach(card => {
+        card.addEventListener("click", () => {
+            modelCards.forEach(c => c.classList.remove("active"));
+            card.classList.add("active");
+            selectedModel = card.dataset.model || "@cf/black-forest-labs/flux-1-schnell";
+        });
+    });
+
+    // Aspect ratio pills click handler
+    const ratioPills = document.querySelectorAll(".ratio-pill");
+    ratioPills.forEach(pill => {
+        pill.addEventListener("click", () => {
+            ratioPills.forEach(p => p.classList.remove("active"));
+            pill.classList.add("active");
+            selectedAspectRatio = pill.dataset.ratio || "1:1";
+        });
+    });
+
+    // Fetch user generated image history & quota
+    async function fetchImageHistory() {
+        try {
+            const resp = await authFetch("/api/image/history");
+            if (!resp.ok) return;
+            const data = await resp.json();
+            userGeneratedImages = data.images || [];
+            updateQuotaBadge(data.quota);
+            renderImageGallery();
+        } catch (e) {
+            console.warn("Failed to fetch image history:", e);
+        }
+    }
+
+    function updateQuotaBadge(quota) {
+        if (!quota || !quotaText) return;
+        quotaText.textContent = `${quota.remaining} / ${quota.limit} images left (12h)`;
+    }
+
+    // Render gallery grid
+    function renderImageGallery() {
+        if (!imageGalleryGrid) return;
+        imageGalleryGrid.innerHTML = "";
+
+        if (userGeneratedImages.length === 0) {
+            imageGalleryGrid.innerHTML = `
+                <div class="image-gallery-empty">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:12px; opacity:0.5;">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    <div>No generated images yet</div>
+                    <div style="font-size:12px; opacity:0.6; margin-top:4px;">Enter a prompt above and click "Generate Image" to create your first masterpiece.</div>
+                </div>
+            `;
+            return;
+        }
+
+        userGeneratedImages.forEach(img => {
+            const card = document.createElement("div");
+            card.className = "generated-image-card";
+            card.dataset.id = img.id;
+
+            card.innerHTML = `
+                <button type="button" class="card-delete-btn" title="Delete image" onclick="event.stopPropagation(); window.deleteGeneratedImage('${img.id}')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+                <div class="card-img-wrapper">
+                    <img src="${img.image_url}" alt="${escHtml(img.title || 'Generated AI Image')}" loading="lazy">
+                </div>
+                <div class="card-info">
+                    <div class="card-title" title="${escHtml(img.title)}">${escHtml(img.title || "AI Image")}</div>
+                    <div class="card-meta-row">
+                        <span class="card-model-tag">${escHtml(img.model_name || "Flux 1")}</span>
+                        <span>${escHtml(img.aspect_ratio || "1:1")}</span>
+                    </div>
+                </div>
+            `;
+
+            card.addEventListener("click", () => openImageLightbox(img));
+            imageGalleryGrid.appendChild(card);
+        });
+    }
+
+    // Generate Image Button Click Handler
+    if (generateImageBtn && imagePromptInput) {
+        generateImageBtn.addEventListener("click", async () => {
+            const prompt = imagePromptInput.value.trim();
+            if (!prompt) {
+                alert("Please enter an image prompt first.");
+                imagePromptInput.focus();
+                return;
+            }
+
+            // 1. Prepend Skeleton Loader Card
+            const skeletonId = "skeleton-" + Date.now();
+            const skeletonCard = document.createElement("div");
+            skeletonCard.className = "image-skeleton-card";
+            skeletonCard.id = skeletonId;
+
+            const modelCardActive = document.querySelector(".model-card.active .model-name");
+            const modelDisplayName = modelCardActive ? modelCardActive.textContent : "AI Engine";
+
+            skeletonCard.innerHTML = `
+                <div class="skeleton-spinner"></div>
+                <div class="skeleton-text">
+                    Rendering image with ${escHtml(modelDisplayName)}...<br>
+                    <span style="font-size:11px; opacity:0.7;">This usually takes 2 to 5 seconds</span>
+                </div>
+            `;
+
+            // Clear empty message if any
+            const emptyEl = imageGalleryGrid.querySelector(".image-gallery-empty");
+            if (emptyEl) emptyEl.remove();
+
+            imageGalleryGrid.prepend(skeletonCard);
+
+            // 2. Disable button & state
+            generateImageBtn.disabled = true;
+            generateImageBtn.innerHTML = `
+                <div class="skeleton-spinner" style="width:16px; height:16px; border-width:2px;"></div>
+                <span>Generating...</span>
+            `;
+
+            try {
+                const resp = await authFetch("/api/image/generate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        model: selectedModel,
+                        aspect_ratio: selectedAspectRatio
+                    })
+                });
+
+                const data = await resp.json();
+
+                if (!resp.ok) {
+                    throw new Error(data.detail || "Failed to generate image.");
+                }
+
+                // Remove skeleton
+                const sEl = document.getElementById(skeletonId);
+                if (sEl) sEl.remove();
+
+                // Clear input
+                imagePromptInput.value = "";
+
+                // Prepend new image & update quota
+                if (data.image) {
+                    userGeneratedImages.unshift(data.image);
+                }
+                updateQuotaBadge(data.quota);
+                renderImageGallery();
+
+            } catch (err) {
+                console.error("Image generation error:", err);
+                const sEl = document.getElementById(skeletonId);
+                if (sEl) sEl.remove();
+                alert(err.message || "Failed to generate image.");
+            } finally {
+                generateImageBtn.disabled = false;
+                generateImageBtn.innerHTML = `
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path>
+                        <path d="M21 3v5h-5"></path>
+                    </svg>
+                    <span>Generate Image</span>
+                `;
+            }
+        });
+    }
+
+    // Lightbox Handlers
+    function openImageLightbox(img) {
+        if (!imageLightboxModal || !img) return;
+        activeLightboxImageId = img.id;
+        lightboxImg.src = img.image_url;
+        lightboxTitle.textContent = img.title || "AI Generated Image";
+        lightboxPrompt.textContent = img.prompt || "";
+        lightboxModel.textContent = img.model_name || "Workers AI";
+        lightboxRatio.textContent = img.aspect_ratio || "1:1";
+        lightboxDate.textContent = img.created_at ? new Date(img.created_at).toLocaleDateString() : "";
+        lightboxDownloadBtn.href = img.image_url;
+        lightboxDownloadBtn.download = `${(img.title || "ai-image").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.png`;
+
+        imageLightboxModal.classList.remove("hidden");
+    }
+
+    if (lightboxCloseBtn && imageLightboxModal) {
+        lightboxCloseBtn.addEventListener("click", () => {
+            imageLightboxModal.classList.add("hidden");
+        });
+        imageLightboxModal.addEventListener("click", (e) => {
+            if (e.target === imageLightboxModal) {
+                imageLightboxModal.classList.add("hidden");
+            }
+        });
+    }
+
+    if (lightboxCopyBtn) {
+        lightboxCopyBtn.addEventListener("click", async () => {
+            try {
+                const response = await fetch(lightboxImg.src);
+                const blob = await response.blob();
+                await navigator.clipboard.write([
+                    new ClipboardItem({ [blob.type]: blob })
+                ]);
+                lightboxCopyBtn.innerHTML = `<span>Copied! ✓</span>`;
+                setTimeout(() => {
+                    lightboxCopyBtn.innerHTML = `
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        <span>Copy Image</span>
+                    `;
+                }, 2000);
+            } catch (err) {
+                console.error("Copy image failed:", err);
+                alert("Copied image URL to clipboard!");
+                navigator.clipboard.writeText(lightboxImg.src);
+            }
+        });
+    }
+
+    window.deleteGeneratedImage = async function(imageId) {
+        if (!confirm("Are you sure you want to delete this image?")) return;
+        try {
+            const resp = await authFetch(`/api/image/delete/${imageId}`, { method: "DELETE" });
+            if (resp.ok) {
+                userGeneratedImages = userGeneratedImages.filter(img => img.id !== imageId);
+                if (imageLightboxModal) imageLightboxModal.classList.add("hidden");
+                renderImageGallery();
+            } else {
+                alert("Failed to delete image.");
+            }
+        } catch (e) {
+            console.error("Delete image error:", e);
+        }
+    };
+
+    if (lightboxDeleteBtn) {
+        lightboxDeleteBtn.addEventListener("click", () => {
+            if (activeLightboxImageId) {
+                window.deleteGeneratedImage(activeLightboxImageId);
+            }
+        });
+    }
 
 });
 

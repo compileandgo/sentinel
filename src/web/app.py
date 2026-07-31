@@ -18,6 +18,9 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 import jwt
 
+import base64
+import httpx
+
 # Adjust path to import from src
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
@@ -36,7 +39,11 @@ from src.web.db import (
     db_save_brief_admin,
     db_delete_chat,
     db_rename_chat,
-    db_update_chat_memory
+    db_update_chat_memory,
+    db_check_image_rate_limit,
+    db_save_generated_image,
+    db_list_generated_images,
+    db_delete_generated_image
 )
 
 from src.core.redis_state import (
@@ -1233,6 +1240,134 @@ async def voice_stt_handler(file: UploadFile = File(...), user: AuthenticatedUse
     except Exception as e:
         print(f"  [Voice STT Error] {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# ── AI Image Studio Endpoints ───────────────────────────────────────────────
+
+MODEL_DISPLAY_NAMES = {
+    "@cf/black-forest-labs/flux-1-schnell": "Flux 1. Schnell (Photorealism)",
+    "@cf/stabilityai/stable-diffusion-xl-base-1.0": "SDXL Base 1.0 (High Quality)",
+    "@cf/bytedance/stable-diffusion-xl-lightning": "SDXL Lightning (Fast Render)",
+    "@cf/lykon/dreamshaper-8-lcm": "DreamShaper 8 (Anime & Fantasy)",
+}
+
+ASPECT_RATIO_DIMS = {
+    "1:1": (1024, 1024),
+    "16:9": (1024, 576),
+    "9:16": (576, 1024),
+    "4:3": (1024, 768),
+}
+
+class ImageGenerateRequest(BaseModel):
+    prompt: str
+    model: Optional[str] = "@cf/black-forest-labs/flux-1-schnell"
+    aspect_ratio: Optional[str] = "1:1"
+
+def _auto_generate_image_title(prompt: str) -> str:
+    cleaned = re.sub(r'[\r\n\t]+', ' ', prompt).strip()
+    words = cleaned.split()
+    if len(words) > 6:
+        title = " ".join(words[:6]) + "..."
+    else:
+        title = " ".join(words)
+    return title.strip().title() or "AI Generated Image"
+
+@app.post("/api/image/generate")
+async def generate_image_endpoint(req: ImageGenerateRequest, user: AuthenticatedUser = Depends(get_current_user)):
+    prompt = req.prompt.strip()
+    if not prompt:
+        raise HTTPException(status_code=400, detail="Prompt is required.")
+
+    # 1. Rate Limit Check (10 images / 12h)
+    is_allowed, count_used, remaining = db_check_image_rate_limit(user, limit=10, window_hours=12)
+    if not is_allowed:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit reached (10 images per 12 hours). You have generated {count_used} images. Please try again later."
+        )
+
+    # 2. Model & Aspect Ratio resolution
+    target_model = req.model if req.model in MODEL_DISPLAY_NAMES else "@cf/black-forest-labs/flux-1-schnell"
+    model_name = MODEL_DISPLAY_NAMES.get(target_model, "Flux 1. Schnell")
+    aspect_ratio = req.aspect_ratio if req.aspect_ratio in ASPECT_RATIO_DIMS else "1:1"
+    width, height = ASPECT_RATIO_DIMS[aspect_ratio]
+
+    # 3. Call Cloudflare Worker API
+    worker_url = os.getenv("CF_IMAGE_WORKER_URL", "https://orange-butterfly-ee8d.jayantkushwaha-cs.workers.dev")
+    worker_key = os.getenv("CF_IMAGE_WORKER_API_KEY", "")
+
+    headers = {"Content-Type": "application/json"}
+    if worker_key:
+        headers["Authorization"] = f"Bearer {worker_key}"
+
+    payload = {
+        "prompt": prompt,
+        "model": target_model
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(worker_url, json=payload, headers=headers)
+            if resp.status_code != 200:
+                error_detail = resp.text
+                print(f"[Worker Image Error] Status {resp.status_code}: {error_detail}")
+                raise HTTPException(status_code=502, detail=f"Image Generator Worker failed: {error_detail[:200]}")
+
+            image_bytes = resp.content
+            if not image_bytes or len(image_bytes) < 100:
+                raise HTTPException(status_code=502, detail="Invalid empty image received from generator worker.")
+
+            b64_str = base64.b64encode(image_bytes).decode("utf-8")
+            data_uri = f"data:image/png;base64,{b64_str}"
+
+    except httpx.RequestError as e:
+        print(f"[Image Worker Connection Error] {e}")
+        raise HTTPException(status_code=503, detail=f"Cloudflare Image Worker connection error: {str(e)}")
+
+    # 4. Save to Database
+    title = _auto_generate_image_title(prompt)
+    saved_record = db_save_generated_image(
+        user=user,
+        prompt=prompt,
+        title=title,
+        model=target_model,
+        model_name=model_name,
+        aspect_ratio=aspect_ratio,
+        width=width,
+        height=height,
+        image_url=data_uri
+    )
+
+    _, updated_count, updated_remaining = db_check_image_rate_limit(user, limit=10, window_hours=12)
+
+    return {
+        "success": True,
+        "image": saved_record,
+        "quota": {
+            "used": updated_count,
+            "remaining": updated_remaining,
+            "limit": 10
+        }
+    }
+
+@app.get("/api/image/history")
+async def get_image_history_endpoint(user: AuthenticatedUser = Depends(get_current_user)):
+    images = db_list_generated_images(user)
+    _, count_used, remaining = db_check_image_rate_limit(user, limit=10, window_hours=12)
+    return {
+        "images": images,
+        "quota": {
+            "used": count_used,
+            "remaining": remaining,
+            "limit": 10
+        }
+    }
+
+@app.delete("/api/image/delete/{image_id}")
+async def delete_image_endpoint(image_id: str, user: AuthenticatedUser = Depends(get_current_user)):
+    success = db_delete_generated_image(user, image_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Image not found or delete failed.")
+    return {"success": True}
 
 # Mount static folder and HTML page routes
 static_path = Path(__file__).resolve().parent / "static"

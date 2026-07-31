@@ -263,3 +263,65 @@ def db_rename_chat(user: AuthenticatedUser, chat_id: str, new_title: str) -> boo
     except Exception as e:
         print(f"Error renaming chat {chat_id}: {e}")
         return False
+
+# ── Image Generation DB Operations ──────────────────────────────────────────
+
+def db_check_image_rate_limit(user: AuthenticatedUser, limit: int = 10, window_hours: int = 12) -> tuple:
+    """Checks sliding window rate limit for AI image generation (10 images per 12 hours)."""
+    from datetime import datetime, timedelta, timezone
+    try:
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=window_hours)).isoformat()
+        res = user.client.table("image_generations").select("id", count="exact").eq("user_id", user.id).gte("created_at", cutoff).execute()
+        count_used = res.count if res.count is not None else len(res.data or [])
+        remaining = max(0, limit - count_used)
+        is_allowed = count_used < limit
+        return is_allowed, count_used, remaining
+    except Exception as e:
+        print(f"Error checking image rate limit: {e}")
+        return True, 0, limit
+
+def db_save_generated_image(
+    user: AuthenticatedUser,
+    prompt: str,
+    title: str,
+    model: str,
+    model_name: str,
+    aspect_ratio: str,
+    width: int,
+    height: int,
+    image_url: str
+) -> Dict:
+    """Saves a generated image record to the database."""
+    res = user.client.table("image_generations").insert({
+        "user_id": user.id,
+        "prompt": prompt,
+        "title": title,
+        "model": model,
+        "model_name": model_name,
+        "aspect_ratio": aspect_ratio,
+        "width": width,
+        "height": height,
+        "image_url": image_url
+    }).execute()
+    if not res.data:
+        raise Exception("Failed to save generated image to database")
+    return res.data[0]
+
+def db_list_generated_images(user: AuthenticatedUser) -> List[Dict]:
+    """Retrieves all generated images for the user ordered by newest first."""
+    try:
+        res = user.client.table("image_generations").select("*").eq("user_id", user.id).order("created_at", desc=True).execute()
+        return res.data or []
+    except Exception as e:
+        print(f"Error fetching generated images: {e}")
+        return []
+
+def db_delete_generated_image(user: AuthenticatedUser, image_id: str) -> bool:
+    """Deletes a generated image from the database."""
+    try:
+        res = user.client.table("image_generations").delete().eq("id", image_id).eq("user_id", user.id).execute()
+        return len(res.data) > 0
+    except Exception as e:
+        print(f"Error deleting image {image_id}: {e}")
+        return False
+
