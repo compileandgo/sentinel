@@ -1310,6 +1310,11 @@ async def generate_image_endpoint(req: ImageGenerateRequest, user: Authenticated
             if resp.status_code != 200:
                 error_detail = resp.text
                 print(f"[Worker Image Error] Status {resp.status_code}: {error_detail}")
+                if resp.status_code == 401:
+                    raise HTTPException(
+                        status_code=401,
+                        detail="Unauthorized: Your Cloudflare Worker requires an API Key. Please set CF_IMAGE_WORKER_API_KEY in your Sentinel .env file to match your Cloudflare Worker API_KEY variable, or remove the auth check from your Cloudflare worker.js."
+                    )
                 raise HTTPException(status_code=502, detail=f"Image Generator Worker failed: {error_detail[:200]}")
 
             image_bytes = resp.content
