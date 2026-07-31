@@ -3281,89 +3281,93 @@ code:not(pre code),
 
 /* ── Light Mode Code & Syntax Highlighting Overrides ── */
 body.light-theme .code-block-container {
-    background-color: #f8fafc;
-    border: 1px solid #cbd5e1;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    background-color: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
 }
 body.light-theme .code-block-header {
-    background-color: #f1f5f9;
-    border-bottom: 1px solid #cbd5e1;
+    background-color: #f1f5f9 !important;
+    border-bottom: 1px solid #cbd5e1 !important;
 }
 body.light-theme .code-block-lang {
-    color: #475569;
+    color: #475569 !important;
 }
 body.light-theme .copy-code-btn {
-    border: 1px solid #cbd5e1;
-    color: #475569;
-    background-color: #ffffff;
+    border: 1px solid #cbd5e1 !important;
+    color: #475569 !important;
+    background-color: #ffffff !important;
 }
 body.light-theme .copy-code-btn:hover {
-    background-color: #e2e8f0;
-    color: #0f172a;
-    border-color: #94a3b8;
+    background-color: #e2e8f0 !important;
+    color: #0f172a !important;
+    border-color: #94a3b8 !important;
 }
-body.light-theme .code-block-container code {
-    color: #0f172a;
+body.light-theme .code-block-container pre {
+    background-color: #f8fafc !important;
+}
+body.light-theme .code-block-container code,
+body.light-theme .code-block-container code * {
+    color: #0f172a !important;
 }
 
 /* Inline Code Styling - Light Mode */
 body.light-theme code:not(pre code),
 body.light-theme .message-text code:not(pre code),
 body.light-theme .report-content code:not(pre code) {
-    background-color: #f1f5f9;
-    color: #0f172a;
-    border: 1px solid #cbd5e1;
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important;
 }
 
 /* Light Mode Syntax Highlighting Tokens */
 body.light-theme .code-block-container .hljs-keyword,
 body.light-theme .code-block-container .hljs-selector-tag,
 body.light-theme .code-block-container .hljs-subst {
-    color: #cf222e;
-    font-weight: 600;
+    color: #cf222e !important;
+    font-weight: 600 !important;
 }
 body.light-theme .code-block-container .hljs-title,
 body.light-theme .code-block-container .hljs-title.function_,
 body.light-theme .code-block-container .hljs-function,
 body.light-theme .code-block-container .hljs-section {
-    color: #8250df;
-    font-weight: 600;
+    color: #8250df !important;
+    font-weight: 600 !important;
 }
 body.light-theme .code-block-container .hljs-string,
 body.light-theme .code-block-container .hljs-doctag,
 body.light-theme .code-block-container .hljs-regexp {
-    color: #0a3069;
+    color: #0a3069 !important;
 }
 body.light-theme .code-block-container .hljs-number,
 body.light-theme .code-block-container .hljs-literal,
 body.light-theme .code-block-container .hljs-boolean,
 body.light-theme .code-block-container .hljs-symbol {
-    color: #0550ae;
+    color: #0550ae !important;
 }
 body.light-theme .code-block-container .hljs-comment,
 body.light-theme .code-block-container .hljs-quote {
-    color: #57606a;
-    font-style: italic;
+    color: #57606a !important;
+    font-style: italic !important;
 }
 body.light-theme .code-block-container .hljs-attr,
 body.light-theme .code-block-container .hljs-attribute,
 body.light-theme .code-block-container .hljs-property {
-    color: #116329;
+    color: #116329 !important;
 }
 body.light-theme .code-block-container .hljs-variable,
 body.light-theme .code-block-container .hljs-template-variable,
 body.light-theme .code-block-container .hljs-params {
-    color: #953800;
+    color: #953800 !important;
 }
 body.light-theme .code-block-container .hljs-type,
 body.light-theme .code-block-container .hljs-built_in,
 body.light-theme .code-block-container .hljs-class {
-    color: #8250df;
-    font-weight: 600;
+    color: #8250df !important;
+    font-weight: 600 !important;
 }
 body.light-theme .code-block-container .hljs-operator,
 body.light-theme .code-block-container .hljs-punctuation {
-    color: #24292f;
+    color: #24292f !important;
 }
 
 /* Chat Link styling with Site Favicons */
