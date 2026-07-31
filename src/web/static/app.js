@@ -141,14 +141,22 @@ document.addEventListener("DOMContentLoaded", () => {
                     return `<div class="mermaid-block mermaid">${codeText}</div>`;
                 }
 
-                const validLang = (typeof hljs !== "undefined" && hljs.getLanguage(lang)) ? lang : 'plaintext';
+                let validLang = (lang && typeof hljs !== "undefined" && hljs.getLanguage(lang)) ? lang : '';
                 let highlighted = codeText;
                 if (typeof hljs !== "undefined") {
                     try {
-                        highlighted = hljs.highlight(codeText, { language: validLang }).value;
+                        if (validLang) {
+                            highlighted = hljs.highlight(codeText, { language: validLang }).value;
+                        } else {
+                            const autoRes = hljs.highlightAuto(codeText);
+                            highlighted = autoRes.value;
+                            validLang = autoRes.language || 'code';
+                        }
                     } catch (e) {
-                        // Silent fallback
+                        validLang = validLang || 'code';
                     }
+                } else {
+                    validLang = validLang || 'code';
                 }
 
                 return `

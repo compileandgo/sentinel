@@ -1,5 +1,21 @@
 @import url('Fonts/WEB/css/quicksand.css');
 
+@font-face {
+    font-family: 'MonoLisa';
+    src: url('Fonts/TTF/MonoLisa-normal.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'MonoLisa';
+    src: url('Fonts/TTF/MonoLisa-italic.ttf') format('truetype');
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+}
+
 /* Stark OLED Gemini Deep Research CSS System (Coolors Palette Theme) */
 :root {
     /* Coolors Palette Tokens */
@@ -32,7 +48,7 @@
     
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --font-quicksand: 'Quicksand-Variable', var(--font-sans);
-    --font-mono: 'Fira Code', 'JetBrains Mono', ui-monospace, monospace;
+    --font-mono: 'MonoLisa', 'Fira Code', 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
 }
 
 body.light-theme {
@@ -2001,7 +2017,7 @@ body.light-theme .create-btn:hover {
     color: var(--text-primary);
     border-radius: 6px;
     padding: 8px 12px;
-    font-family: 'Fira Code', monospace;
+    font-family: var(--font-mono);
     font-size: 13px;
     width: 80px;
     text-align: center;
@@ -3123,41 +3139,50 @@ body.light-theme .social-btn {
 }
 
 /* Code block highlighting and Copy options */
+code, pre, kbd, samp {
+    font-family: var(--font-mono);
+}
+
 .code-block-container {
-    background-color: #0d0d0f;
+    background-color: #0d0f14;
     border: 1px solid var(--border-card);
     border-radius: 8px;
-    margin: 12px 0;
+    margin: 14px 0;
     overflow: hidden;
-    font-family: var(--font-mono, 'Fira Code', monospace);
+    font-family: var(--font-mono);
     font-size: 13.5px;
+    line-height: 1.55;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 .code-block-header {
-    background-color: #16161a;
+    background-color: #141720;
     padding: 8px 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--border-card);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 .code-block-lang {
     color: var(--text-muted);
     font-size: 11px;
     text-transform: uppercase;
     font-weight: 600;
+    letter-spacing: 0.5px;
+    font-family: var(--font-mono);
 }
 .copy-code-btn {
     background: transparent;
-    border: 1px solid var(--border-card);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     color: var(--text-secondary);
-    padding: 3px 8px;
+    padding: 3px 10px;
     font-size: 11px;
     border-radius: 4px;
     cursor: pointer;
+    font-family: var(--font-mono);
     transition: all 0.2s ease;
 }
 .copy-code-btn:hover {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: rgba(255, 255, 255, 0.08);
     color: var(--text-primary);
     border-color: var(--text-muted);
 }
@@ -3165,14 +3190,166 @@ body.light-theme .social-btn {
     margin: 0;
     padding: 16px;
     overflow-x: auto;
+    background: transparent;
 }
 .code-block-container code {
-    font-family: inherit;
+    font-family: var(--font-mono);
     background: transparent;
     padding: 0;
     border-radius: 0;
     white-space: pre;
-    color: #e3e3e6;
+    color: #e2e8f0;
+}
+
+/* Inline Code Styling - Dark Mode */
+code:not(pre code),
+.message-text code:not(pre code),
+.report-content code:not(pre code) {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    background-color: rgba(255, 255, 255, 0.07);
+    color: #50e3c2;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* Dark Mode Syntax Highlighting Tokens */
+.code-block-container .hljs-keyword,
+.code-block-container .hljs-selector-tag,
+.code-block-container .hljs-subst {
+    color: #ff7b72;
+    font-weight: 500;
+}
+.code-block-container .hljs-title,
+.code-block-container .hljs-title.function_,
+.code-block-container .hljs-function,
+.code-block-container .hljs-section {
+    color: #d2a8ff;
+    font-weight: 500;
+}
+.code-block-container .hljs-string,
+.code-block-container .hljs-doctag,
+.code-block-container .hljs-regexp {
+    color: #a5d6ff;
+}
+.code-block-container .hljs-number,
+.code-block-container .hljs-literal,
+.code-block-container .hljs-boolean,
+.code-block-container .hljs-symbol {
+    color: #79c0ff;
+}
+.code-block-container .hljs-comment,
+.code-block-container .hljs-quote {
+    color: #8b949e;
+    font-style: italic;
+}
+.code-block-container .hljs-attr,
+.code-block-container .hljs-attribute,
+.code-block-container .hljs-property {
+    color: #7ee787;
+}
+.code-block-container .hljs-variable,
+.code-block-container .hljs-template-variable,
+.code-block-container .hljs-params {
+    color: #ffa657;
+}
+.code-block-container .hljs-type,
+.code-block-container .hljs-built_in,
+.code-block-container .hljs-class {
+    color: #79c0ff;
+    font-weight: 500;
+}
+.code-block-container .hljs-operator,
+.code-block-container .hljs-punctuation {
+    color: #c9d1d9;
+}
+
+/* ── Light Mode Code & Syntax Highlighting Overrides ── */
+body.light-theme .code-block-container {
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+body.light-theme .code-block-header {
+    background-color: #f1f5f9;
+    border-bottom: 1px solid #cbd5e1;
+}
+body.light-theme .code-block-lang {
+    color: #475569;
+}
+body.light-theme .copy-code-btn {
+    border: 1px solid #cbd5e1;
+    color: #475569;
+    background-color: #ffffff;
+}
+body.light-theme .copy-code-btn:hover {
+    background-color: #e2e8f0;
+    color: #0f172a;
+    border-color: #94a3b8;
+}
+body.light-theme .code-block-container code {
+    color: #0f172a;
+}
+
+/* Inline Code Styling - Light Mode */
+body.light-theme code:not(pre code),
+body.light-theme .message-text code:not(pre code),
+body.light-theme .report-content code:not(pre code) {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    border: 1px solid #cbd5e1;
+}
+
+/* Light Mode Syntax Highlighting Tokens */
+body.light-theme .code-block-container .hljs-keyword,
+body.light-theme .code-block-container .hljs-selector-tag,
+body.light-theme .code-block-container .hljs-subst {
+    color: #cf222e;
+    font-weight: 600;
+}
+body.light-theme .code-block-container .hljs-title,
+body.light-theme .code-block-container .hljs-title.function_,
+body.light-theme .code-block-container .hljs-function,
+body.light-theme .code-block-container .hljs-section {
+    color: #8250df;
+    font-weight: 600;
+}
+body.light-theme .code-block-container .hljs-string,
+body.light-theme .code-block-container .hljs-doctag,
+body.light-theme .code-block-container .hljs-regexp {
+    color: #0a3069;
+}
+body.light-theme .code-block-container .hljs-number,
+body.light-theme .code-block-container .hljs-literal,
+body.light-theme .code-block-container .hljs-boolean,
+body.light-theme .code-block-container .hljs-symbol {
+    color: #0550ae;
+}
+body.light-theme .code-block-container .hljs-comment,
+body.light-theme .code-block-container .hljs-quote {
+    color: #57606a;
+    font-style: italic;
+}
+body.light-theme .code-block-container .hljs-attr,
+body.light-theme .code-block-container .hljs-attribute,
+body.light-theme .code-block-container .hljs-property {
+    color: #116329;
+}
+body.light-theme .code-block-container .hljs-variable,
+body.light-theme .code-block-container .hljs-template-variable,
+body.light-theme .code-block-container .hljs-params {
+    color: #953800;
+}
+body.light-theme .code-block-container .hljs-type,
+body.light-theme .code-block-container .hljs-built_in,
+body.light-theme .code-block-container .hljs-class {
+    color: #8250df;
+    font-weight: 600;
+}
+body.light-theme .code-block-container .hljs-operator,
+body.light-theme .code-block-container .hljs-punctuation {
+    color: #24292f;
 }
 
 /* Chat Link styling with Site Favicons */
