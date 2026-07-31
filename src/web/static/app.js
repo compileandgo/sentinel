@@ -3932,6 +3932,11 @@ document.addEventListener("DOMContentLoaded", () => {
         isImageStudioActive = true;
         imageStudioView.classList.remove("hidden");
 
+        // Close research report viewer if open
+        if (researchViewer) {
+            researchViewer.classList.add("collapsed");
+        }
+
         // Update active navbar button
         const navButtons = document.querySelectorAll(".sidebar-nav .nav-btn");
         navButtons.forEach(b => {
@@ -4147,15 +4152,48 @@ document.addEventListener("DOMContentLoaded", () => {
         lightboxDownloadBtn.download = `${(img.title || "ai-image").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.png`;
 
         imageLightboxModal.classList.remove("hidden");
+        imageLightboxModal.classList.add("active");
+    }
+
+    function closeImageLightboxModal() {
+        if (!imageLightboxModal) return;
+        imageLightboxModal.classList.remove("active");
+        imageLightboxModal.classList.add("hidden");
     }
 
     if (lightboxCloseBtn && imageLightboxModal) {
-        lightboxCloseBtn.addEventListener("click", () => {
-            imageLightboxModal.classList.add("hidden");
-        });
+        lightboxCloseBtn.addEventListener("click", closeImageLightboxModal);
         imageLightboxModal.addEventListener("click", (e) => {
             if (e.target === imageLightboxModal) {
-                imageLightboxModal.classList.add("hidden");
+                closeImageLightboxModal();
+            }
+        });
+    }
+
+    if (lightboxDownloadBtn) {
+        lightboxDownloadBtn.addEventListener("click", async (e) => {
+            e.preventDefault();
+            const url = lightboxDownloadBtn.href || lightboxImg.src;
+            const fileName = lightboxDownloadBtn.download || "ai-generated-image.png";
+            try {
+                const res = await fetch(url);
+                const blob = await res.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = blobUrl;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(blobUrl);
+            } catch (err) {
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = fileName;
+                a.target = "_blank";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
             }
         });
     }

@@ -359,6 +359,13 @@ body.light-theme {
     background-color: var(--bg-card-hover);
 }
 
+#images-btn:hover {
+    background: linear-gradient(135deg, rgba(0, 112, 243, 0.15), rgba(0, 81, 168, 0.1));
+    border: 1px solid rgba(0, 112, 243, 0.3);
+    color: var(--text-primary);
+    transform: translateX(2px);
+}
+
 .sidebar-recent-wrapper {
     position: relative;
     flex-grow: 1;
@@ -1947,8 +1954,9 @@ body.light-theme .create-btn:hover {
     opacity: 0;
     transition: opacity 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.modal-overlay.active {
-    opacity: 1;
+.modal-overlay.active,
+.modal-overlay:not(.hidden) {
+    opacity: 1 !important;
 }
 .modal-content {
     background-color: var(--bg-sidebar);
@@ -4835,7 +4843,7 @@ body.light-theme .chart-action-btn:hover {
 }
 
 .generate-image-btn {
-    background: linear-gradient(135deg, #0070f3, #7828c8);
+    background: linear-gradient(135deg, #0070f3 0%, #0051a8 100%) !important;
     color: #ffffff;
     border: none;
     border-radius: 10px;
