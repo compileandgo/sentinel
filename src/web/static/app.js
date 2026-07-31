@@ -198,6 +198,24 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    // ── KaTeX Math Renderer ──────────────────────────────────────────────────
+    function renderKaTeX(container) {
+        if (!container || typeof renderMathInElement === "undefined") return;
+        try {
+            renderMathInElement(container, {
+                delimiters: [
+                    { left: "$$", right: "$$", display: true },
+                    { left: "\\[", right: "\\]", display: true },
+                    { left: "$", right: "$", display: false },
+                    { left: "\\(", right: "\\)", display: false }
+                ],
+                throwOnError: false
+            });
+        } catch (e) {
+            // Silent fallback
+        }
+    }
+
     // ── Chart.js visual engine renderer ──────────────────────────────────────
     function renderSentinelCharts(container) {
         if (typeof Chart === "undefined" || !container) return;
@@ -1589,6 +1607,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             textTarget.classList.remove("streaming");
                             renderMermaidDiagrams(textTarget);
                             renderSentinelCharts(textTarget);
+                            renderKaTeX(textTarget);
                             if (activeItem) activeItem.remove();
                             // Strip title tags before passing to action setup
                             const cleanText = fullText.replace(/<title>[\s\S]*?<\/title>/i, "").trim();
@@ -2533,6 +2552,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!isLoading) {
                 renderMermaidDiagrams(div);
                 renderSentinelCharts(div);
+                renderKaTeX(div);
             }
         }
         chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -2594,6 +2614,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 : `<pre>${escHtml(displayMarkdown)}</pre>`;
             renderMermaidDiagrams(reportContent);
             renderSentinelCharts(reportContent);
+            renderKaTeX(reportContent);
         } catch {
             reportContent.innerHTML = `<pre>${escHtml(displayMarkdown)}</pre>`;
         }
@@ -3345,9 +3366,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             });
 
-            // Render Mermaid diagrams and Chart.js charts for all loaded historical messages
+            // Render Mermaid diagrams, Chart.js charts, and KaTeX math for all loaded historical messages
             renderMermaidDiagrams(idleWelcome);
             renderSentinelCharts(idleWelcome);
+            renderKaTeX(idleWelcome);
 
             // Dynamic event listeners for the brief cards in chat history
             const reportCards = idleWelcome.querySelectorAll(".chat-brief-card");

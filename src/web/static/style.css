@@ -3281,33 +3281,33 @@ code:not(pre code),
 
 /* ── Light Mode Code & Syntax Highlighting Overrides ── */
 body.light-theme .code-block-container {
-    background-color: #f8fafc !important;
+    background-color: #0d0f14 !important;
     border: 1px solid #cbd5e1 !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
 }
 body.light-theme .code-block-header {
-    background-color: #f1f5f9 !important;
-    border-bottom: 1px solid #cbd5e1 !important;
+    background-color: #141720 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 body.light-theme .code-block-lang {
-    color: #475569 !important;
+    color: #94a3b8 !important;
 }
 body.light-theme .copy-code-btn {
-    border: 1px solid #cbd5e1 !important;
-    color: #475569 !important;
-    background-color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: #e2e8f0 !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
 }
 body.light-theme .copy-code-btn:hover {
-    background-color: #e2e8f0 !important;
-    color: #0f172a !important;
-    border-color: #94a3b8 !important;
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+    border-color: #cbd5e1 !important;
 }
 body.light-theme .code-block-container pre {
-    background-color: #f8fafc !important;
+    background-color: #0d0f14 !important;
 }
 body.light-theme .code-block-container code,
 body.light-theme .code-block-container code * {
-    color: #0f172a !important;
+    color: #e2e8f0 !important;
 }
 
 /* Inline Code Styling - Light Mode */
@@ -3317,57 +3317,58 @@ body.light-theme .report-content code:not(pre code) {
     background-color: #f1f5f9 !important;
     color: #0f172a !important;
     border: 1px solid #cbd5e1 !important;
+    font-style: normal;
 }
 
-/* Light Mode Syntax Highlighting Tokens */
+/* Light Mode Syntax Highlighting Tokens (Vibrant Dark-Block Tokens) */
 body.light-theme .code-block-container .hljs-keyword,
 body.light-theme .code-block-container .hljs-selector-tag,
 body.light-theme .code-block-container .hljs-subst {
-    color: #cf222e !important;
-    font-weight: 600 !important;
+    color: #ff7b72 !important;
+    font-weight: 500 !important;
 }
 body.light-theme .code-block-container .hljs-title,
 body.light-theme .code-block-container .hljs-title.function_,
 body.light-theme .code-block-container .hljs-function,
 body.light-theme .code-block-container .hljs-section {
-    color: #8250df !important;
-    font-weight: 600 !important;
+    color: #d2a8ff !important;
+    font-weight: 500 !important;
 }
 body.light-theme .code-block-container .hljs-string,
 body.light-theme .code-block-container .hljs-doctag,
 body.light-theme .code-block-container .hljs-regexp {
-    color: #0a3069 !important;
+    color: #a5d6ff !important;
 }
 body.light-theme .code-block-container .hljs-number,
 body.light-theme .code-block-container .hljs-literal,
 body.light-theme .code-block-container .hljs-boolean,
 body.light-theme .code-block-container .hljs-symbol {
-    color: #0550ae !important;
+    color: #79c0ff !important;
 }
 body.light-theme .code-block-container .hljs-comment,
 body.light-theme .code-block-container .hljs-quote {
-    color: #57606a !important;
+    color: #8b949e !important;
     font-style: italic !important;
 }
 body.light-theme .code-block-container .hljs-attr,
 body.light-theme .code-block-container .hljs-attribute,
 body.light-theme .code-block-container .hljs-property {
-    color: #116329 !important;
+    color: #7ee787 !important;
 }
 body.light-theme .code-block-container .hljs-variable,
 body.light-theme .code-block-container .hljs-template-variable,
 body.light-theme .code-block-container .hljs-params {
-    color: #953800 !important;
+    color: #ffa657 !important;
 }
 body.light-theme .code-block-container .hljs-type,
 body.light-theme .code-block-container .hljs-built_in,
 body.light-theme .code-block-container .hljs-class {
-    color: #8250df !important;
-    font-weight: 600 !important;
+    color: #79c0ff !important;
+    font-weight: 500 !important;
 }
 body.light-theme .code-block-container .hljs-operator,
 body.light-theme .code-block-container .hljs-punctuation {
-    color: #24292f !important;
+    color: #c9d1d9 !important;
 }
 
 /* Chat Link styling with Site Favicons */
