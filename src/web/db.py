@@ -132,6 +132,19 @@ def db_get_brief_content(user: AuthenticatedUser, filename: str) -> Optional[Dic
             msg_data["date"] = msg["created_at"][:16].replace("T", " ") + " UTC"
             chat_history.append(msg_data)
             
+        # Fallback: guarantee brief message with type='brief' exists in history for research briefs
+        if not any(m.get("type") == "brief" for m in chat_history):
+            brief_msg = {
+                "role": "assistant",
+                "type": "brief",
+                "content": content,
+                "date": "Completed"
+            }
+            if chat_history and chat_history[0].get("role") == "user":
+                chat_history.insert(1, brief_msg)
+            else:
+                chat_history.insert(0, brief_msg)
+
         return {
             "content": content,
             "chat_history": chat_history,
@@ -209,6 +222,20 @@ def db_save_brief_admin(chat_id: str, title: str, content: str, filename: str) -
             "content": content,
             "filename": filename
         }).execute()
+
+    # Ensure brief message with type='brief' exists in messages table
+    msg_check = admin.table("messages").select("id").eq("chat_id", chat_id).eq("role", "assistant").eq("type", "brief").execute()
+    if not msg_check.data:
+        admin.table("messages").insert({
+            "chat_id": chat_id,
+            "role": "assistant",
+            "content": content,
+            "type": "brief"
+        }).execute()
+    else:
+        admin.table("messages").update({
+            "content": content
+        }).eq("chat_id", chat_id).eq("role", "assistant").eq("type", "brief").execute()
         
     # Also update the chat table's title and updated_at timestamp to bubble it up in recent list
     admin.table("chats").update({"title": title, "updated_at": "now()"}).eq("id", chat_id).execute()

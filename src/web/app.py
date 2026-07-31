@@ -1200,8 +1200,7 @@ async def chat_stream_handler(req: ChatRequest, user: AuthenticatedUser = Depend
                 user, req, target_filename, db_brief, context,
                 chat_history, chat_id, full_response, sources=sources
             )
-            result_filename = new_chat_id if (new_chat_id and not chat_id) else target_filename
-            yield f"data: {json.dumps({'done': True, 'filename': result_filename, 'is_new': bool(new_chat_id and not chat_id)})}\n\n"
+            yield f"data: {json.dumps({'done': True, 'chat_id': new_chat_id or chat_id, 'filename': target_filename or None, 'is_new': bool(new_chat_id and not chat_id)})}\n\n"
 
         except asyncio.CancelledError:
             # Client aborted — discard partial response, do not save
