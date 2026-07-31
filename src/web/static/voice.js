@@ -130,7 +130,9 @@ class VoiceController {
             this.resetSilenceTimer();
         } catch (err) {
             console.error('[Voice] Cannot access microphone:', err);
-            alert('Microphone access is required for voice input.');
+            if (typeof window.showToast === 'function') {
+                window.showToast('Microphone Required', 'Microphone access is required for voice input.');
+            }
         }
     }
 
@@ -266,7 +268,9 @@ class VoiceController {
 
             window.speechSynthesis.speak(utterance);
         } else {
-            alert('Text-to-speech is not supported in this browser.');
+            if (typeof window.showToast === 'function') {
+                window.showToast('Voice Error', 'Text-to-speech is not supported in this browser.');
+            }
         }
     }
 

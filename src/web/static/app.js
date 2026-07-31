@@ -1787,7 +1787,7 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             await authFetch(`/api/research/resume/${currentRunId}`, { method: "POST" });
         } catch (err) {
-            alert(`Could not resume: ${err.message}`);
+            showToast("Resume Error", `Could not resume: ${err.message}`);
             startResearchBtn.disabled = false;
             editPlanBtn.disabled = false;
             return;
@@ -3485,7 +3485,7 @@ document.addEventListener("DOMContentLoaded", () => {
             updateDiscussionPlaceholder();
 
         } catch (err) {
-            alert(`Could not load brief: ${err.message}`);
+            showToast("Load Error", `Could not load brief: ${err.message}`);
         }
     }
 
@@ -3517,6 +3517,90 @@ document.addEventListener("DOMContentLoaded", () => {
             setTimeout(() => toast.remove(), 400);
         }, 4000);
     }
+
+    // ── Custom Alert & Confirmation Dialogue Modal Helper ──────────────────
+    function showAlertDialog({ title = "Notice", message = "", iconType = "warning", confirmText = "OK", onConfirm = null }) {
+        const oldDialog = document.querySelector(".custom-dialog-overlay");
+        if (oldDialog) oldDialog.remove();
+
+        let iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
+        if (iconType === "error") {
+            iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
+        } else if (iconType === "info" || iconType === "success") {
+            iconSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0070f3" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
+        }
+
+        const overlay = document.createElement("div");
+        overlay.className = "custom-dialog-overlay";
+        overlay.innerHTML = `
+            <div class="custom-dialog-card">
+                <div class="custom-dialog-header">
+                    <div class="custom-dialog-icon">${iconSvg}</div>
+                    <div class="custom-dialog-title">${escHtml(title)}</div>
+                </div>
+                <div class="custom-dialog-body">${escHtml(message)}</div>
+                <div class="custom-dialog-actions">
+                    <button type="button" class="btn btn-primary custom-dialog-ok-btn">${escHtml(confirmText)}</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        const closeBtn = overlay.querySelector(".custom-dialog-ok-btn");
+        closeBtn.addEventListener("click", () => {
+            overlay.remove();
+            if (typeof onConfirm === "function") onConfirm();
+        });
+        overlay.addEventListener("click", (e) => {
+            if (e.target === overlay) {
+                overlay.remove();
+                if (typeof onConfirm === "function") onConfirm();
+            }
+        });
+    }
+
+    function showConfirmDialog({ title = "Confirm Action", message = "", confirmText = "Confirm", cancelText = "Cancel", onConfirm = null }) {
+        const oldDialog = document.querySelector(".custom-dialog-overlay");
+        if (oldDialog) oldDialog.remove();
+
+        const overlay = document.createElement("div");
+        overlay.className = "custom-dialog-overlay";
+        overlay.innerHTML = `
+            <div class="custom-dialog-card">
+                <div class="custom-dialog-header">
+                    <div class="custom-dialog-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </div>
+                    <div class="custom-dialog-title">${escHtml(title)}</div>
+                </div>
+                <div class="custom-dialog-body">${escHtml(message)}</div>
+                <div class="custom-dialog-actions">
+                    <button type="button" class="btn btn-secondary custom-dialog-cancel-btn">${escHtml(cancelText)}</button>
+                    <button type="button" class="btn btn-danger custom-dialog-confirm-btn">${escHtml(confirmText)}</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        const cancelBtn = overlay.querySelector(".custom-dialog-cancel-btn");
+        const confirmBtn = overlay.querySelector(".custom-dialog-confirm-btn");
+
+        cancelBtn.addEventListener("click", () => overlay.remove());
+        confirmBtn.addEventListener("click", () => {
+            overlay.remove();
+            if (typeof onConfirm === "function") onConfirm();
+        });
+        overlay.addEventListener("click", (e) => {
+            if (e.target === overlay) overlay.remove();
+        });
+    }
+
+    window.showToast = showToast;
+    window.showAlertDialog = showAlertDialog;
+    window.showConfirmDialog = showConfirmDialog;
 
     // ── Settings Dialog Modal ────────────────────────────────────────────────
     if (settingsBtn) {
@@ -4054,7 +4138,11 @@ document.addEventListener("DOMContentLoaded", () => {
         generateImageBtn.addEventListener("click", async () => {
             const prompt = imagePromptInput.value.trim();
             if (!prompt) {
-                alert("Please enter an image prompt first.");
+                showAlertDialog({
+                    title: "Prompt Required",
+                    message: "Please describe the image you want to generate before clicking Generate.",
+                    iconType: "warning"
+                });
                 imagePromptInput.focus();
                 return;
             }
@@ -4124,7 +4212,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 console.error("Image generation error:", err);
                 const sEl = document.getElementById(skeletonId);
                 if (sEl) sEl.remove();
-                alert(err.message || "Failed to generate image.");
+                showAlertDialog({
+                    title: "Generation Failed",
+                    message: err.message || "Failed to generate image.",
+                    iconType: "error"
+                });
             } finally {
                 generateImageBtn.disabled = false;
                 generateImageBtn.innerHTML = `
@@ -4218,26 +4310,37 @@ document.addEventListener("DOMContentLoaded", () => {
                 }, 2000);
             } catch (err) {
                 console.error("Copy image failed:", err);
-                alert("Copied image URL to clipboard!");
                 navigator.clipboard.writeText(lightboxImg.src);
+                showToast("Copied to Clipboard", "Image URL copied to clipboard.");
             }
         });
     }
 
-    window.deleteGeneratedImage = async function(imageId) {
-        if (!confirm("Are you sure you want to delete this image?")) return;
-        try {
-            const resp = await authFetch(`/api/image/delete/${imageId}`, { method: "DELETE" });
-            if (resp.ok) {
-                userGeneratedImages = userGeneratedImages.filter(img => img.id !== imageId);
-                if (imageLightboxModal) imageLightboxModal.classList.add("hidden");
-                renderImageGallery();
-            } else {
-                alert("Failed to delete image.");
+    window.deleteGeneratedImage = function(imageId) {
+        showConfirmDialog({
+            title: "Delete Image",
+            message: "Are you sure you want to permanently delete this image from your gallery?",
+            confirmText: "Delete",
+            onConfirm: async () => {
+                try {
+                    const resp = await authFetch(`/api/image/delete/${imageId}`, { method: "DELETE" });
+                    if (resp.ok) {
+                        userGeneratedImages = userGeneratedImages.filter(img => img.id !== imageId);
+                        if (imageLightboxModal) {
+                            imageLightboxModal.classList.remove("active");
+                            imageLightboxModal.classList.add("hidden");
+                        }
+                        renderImageGallery();
+                        showToast("Image Deleted", "The image was removed from your gallery.");
+                    } else {
+                        showToast("Delete Error", "Failed to delete image.");
+                    }
+                } catch (e) {
+                    console.error("Delete image error:", e);
+                    showToast("Delete Error", "An error occurred while deleting the image.");
+                }
             }
-        } catch (e) {
-            console.error("Delete image error:", e);
-        }
+        });
     };
 
     if (lightboxDeleteBtn) {

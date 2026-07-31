@@ -5169,5 +5169,103 @@ body.light-theme .chart-action-btn:hover {
     color: #ffffff;
 }
 
+/* Custom Dialogue & Alert Popup Modal */
+.custom-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeInModal 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.custom-dialog-card {
+    background: var(--bg-card, #12141a);
+    border: 1px solid var(--border-card, rgba(255, 255, 255, 0.12));
+    border-radius: 16px;
+    width: 420px;
+    max-width: 90vw;
+    padding: 24px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 1px 1px rgba(255, 255, 255, 0.05) inset;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    animation: scaleUpModal 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes scaleUpModal {
+    from {
+        opacity: 0;
+        transform: scale(0.92) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.custom-dialog-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.custom-dialog-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    flex-shrink: 0;
+}
+
+.custom-dialog-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary, #ffffff);
+}
+
+.custom-dialog-body {
+    font-size: 14px;
+    color: var(--text-secondary, #94a3b8);
+    line-height: 1.5;
+}
+
+.custom-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.custom-dialog-actions .btn {
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+}
+
+.custom-dialog-ok-btn {
+    background: linear-gradient(135deg, #0070f3 0%, #0051a8 100%);
+    color: #ffffff;
+}
+
+.custom-dialog-ok-btn:hover {
+    box-shadow: 0 4px 14px rgba(0, 112, 243, 0.4);
+    transform: translateY(-1px);
+}
+
 
 
