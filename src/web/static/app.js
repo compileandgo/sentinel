@@ -3998,7 +3998,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const lightboxCopyBtn = document.getElementById("lightbox-copy-btn");
     const lightboxDeleteBtn = document.getElementById("lightbox-delete-btn");
 
-    let selectedModel = "@cf/black-forest-labs/flux-1-schnell";
+    let selectedModel = "@cf/black-forest-labs/flux-2-dev";
+    const enhancePromptToggle = document.getElementById("enhance-prompt-toggle");
     let selectedAspectRatio = "1:1";
     let isImageStudioActive = false;
     let userGeneratedImages = [];
@@ -4178,13 +4179,15 @@ document.addEventListener("DOMContentLoaded", () => {
             `;
 
             try {
+                const enhanceEnabled = enhancePromptToggle ? enhancePromptToggle.checked : true;
                 const resp = await authFetch("/api/image/generate", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         prompt: prompt,
                         model: selectedModel,
-                        aspect_ratio: selectedAspectRatio
+                        aspect_ratio: selectedAspectRatio,
+                        enhance_prompt: enhanceEnabled
                     })
                 });
 

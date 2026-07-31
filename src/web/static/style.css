@@ -5267,5 +5267,81 @@ body.light-theme .chart-action-btn:hover {
     transform: translateY(-1px);
 }
 
+/* ── AI Prompt Enhancement Toggle ───────────────────────────────────────── */
+.image-enhance-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 14px;
+    background: rgba(0, 112, 243, 0.06);
+    border: 1px solid rgba(0, 112, 243, 0.15);
+    border-radius: 10px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+}
+
+.enhance-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.enhance-toggle-label input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.enhance-toggle-track {
+    position: relative;
+    display: inline-block;
+    width: 38px;
+    height: 22px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 11px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: background 0.25s ease, border-color 0.25s ease;
+    flex-shrink: 0;
+}
+
+.enhance-toggle-label input:checked + .enhance-toggle-track {
+    background: linear-gradient(135deg, #0070f3, #0051a8);
+    border-color: #0070f3;
+}
+
+.enhance-toggle-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 14px;
+    height: 14px;
+    background: #ffffff;
+    border-radius: 50%;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.enhance-toggle-label input:checked ~ .enhance-toggle-track .enhance-toggle-thumb {
+    transform: translateX(16px);
+}
+
+.enhance-toggle-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.enhance-hint {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    flex-grow: 1;
+}
+
 
 

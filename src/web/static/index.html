@@ -44,7 +44,7 @@
             securityLevel: 'loose'
         });
     </script>
-    <link rel="stylesheet" href="style.css?v=104">
+    <link rel="stylesheet" href="style.css?v=105">
 </head>
 <body>
     <div class="app-container hidden">
@@ -234,16 +234,27 @@
                         <div class="form-group">
                             <label class="form-label">Select Model & Style</label>
                             <div class="model-selection-grid">
-                                <div class="model-card active" data-model="@cf/black-forest-labs/flux-1-schnell">
+                                <div class="model-card active" data-model="@cf/black-forest-labs/flux-2-dev">
+                                    <div class="model-card-header">
+                                        <svg class="model-icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                                        </svg>
+                                        <span class="model-name">Flux 2 Dev</span>
+                                        <span class="model-badge">Best Quality</span>
+                                    </div>
+                                    <div class="model-desc">Ultra HD photorealism — state-of-the-art detail & clarity</div>
+                                </div>
+
+                                <div class="model-card" data-model="@cf/black-forest-labs/flux-1-schnell">
                                     <div class="model-card-header">
                                         <svg class="model-icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                                             <circle cx="12" cy="13" r="4"></circle>
                                         </svg>
-                                        <span class="model-name">Flux 1. Schnell</span>
-                                        <span class="model-badge">Recommended</span>
+                                        <span class="model-name">Flux 1 Schnell</span>
+                                        <span class="model-badge">Fast</span>
                                     </div>
-                                    <div class="model-desc">Photorealism, sharp details & fast generation</div>
+                                    <div class="model-desc">Sharp & fast — great balance of speed and photorealism</div>
                                 </div>
 
                                 <div class="model-card" data-model="@cf/stabilityai/stable-diffusion-xl-base-1.0">
@@ -253,17 +264,7 @@
                                         </svg>
                                         <span class="model-name">SDXL Base 1.0</span>
                                     </div>
-                                    <div class="model-desc">High quality artistic, cinematic & landscape images</div>
-                                </div>
-
-                                <div class="model-card" data-model="@cf/bytedance/stable-diffusion-xl-lightning">
-                                    <div class="model-card-header">
-                                        <svg class="model-icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                                        </svg>
-                                        <span class="model-name">SDXL Lightning</span>
-                                    </div>
-                                    <div class="model-desc">Ultra-fast 1-step render engine for quick drafts</div>
+                                    <div class="model-desc">Artistic, cinematic & landscape imagery</div>
                                 </div>
 
                                 <div class="model-card" data-model="@cf/lykon/dreamshaper-8-lcm">
@@ -276,6 +277,21 @@
                                     <div class="model-desc">Anime, 3D artwork, fantasy & illustrative styles</div>
                                 </div>
                             </div>
+                        </div>
+
+                        <!-- Enhance Prompt Toggle + Aspect Ratio Options & Generate Button -->
+                        <div class="image-enhance-row">
+                            <label class="enhance-toggle-label">
+                                <input type="checkbox" id="enhance-prompt-toggle" checked>
+                                <span class="enhance-toggle-track">
+                                    <span class="enhance-toggle-thumb"></span>
+                                </span>
+                                <span class="enhance-toggle-text">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2 7h7l-5.5 4 2 7L12 16l-5.5 4 2-7L3 9h7z"/></svg>
+                                    AI Prompt Enhancement
+                                </span>
+                            </label>
+                            <span class="enhance-hint">Automatically improves your prompt for better results</span>
                         </div>
 
                         <!-- Aspect Ratio Options & Generate Button -->
@@ -974,6 +990,6 @@
     </div>
 
     <script src="voice.js?v=1"></script>
-    <script src="app.js?v=104"></script>
+    <script src="app.js?v=105"></script>
 </body>
 </html>

@@ -1244,9 +1244,10 @@ async def voice_stt_handler(file: UploadFile = File(...), user: AuthenticatedUse
 # ── AI Image Studio Endpoints ───────────────────────────────────────────────
 
 MODEL_DISPLAY_NAMES = {
-    "@cf/black-forest-labs/flux-1-schnell": "Flux 1. Schnell (Photorealism)",
-    "@cf/stabilityai/stable-diffusion-xl-base-1.0": "SDXL Base 1.0 (High Quality)",
-    "@cf/bytedance/stable-diffusion-xl-lightning": "SDXL Lightning (Fast Render)",
+    "@cf/black-forest-labs/flux-2-dev": "Flux 2 Dev (Ultra HD Quality)",
+    "@cf/black-forest-labs/flux-1-schnell": "Flux 1 Schnell (Fast & Sharp)",
+    "@cf/stabilityai/stable-diffusion-xl-base-1.0": "SDXL Base 1.0 (Artistic)",
+    "@cf/bytedance/stable-diffusion-xl-lightning": "SDXL Lightning (Quick Draft)",
     "@cf/lykon/dreamshaper-8-lcm": "DreamShaper 8 (Anime & Fantasy)",
 }
 
@@ -1259,8 +1260,9 @@ ASPECT_RATIO_DIMS = {
 
 class ImageGenerateRequest(BaseModel):
     prompt: str
-    model: Optional[str] = "@cf/black-forest-labs/flux-1-schnell"
+    model: Optional[str] = "@cf/black-forest-labs/flux-2-dev"
     aspect_ratio: Optional[str] = "1:1"
+    enhance_prompt: Optional[bool] = True
 
 def _auto_generate_image_title(prompt: str) -> str:
     cleaned = re.sub(r'[\r\n\t]+', ' ', prompt).strip()
@@ -1270,6 +1272,48 @@ def _auto_generate_image_title(prompt: str) -> str:
     else:
         title = " ".join(words)
     return title.strip().title() or "AI Generated Image"
+
+async def _enhance_image_prompt(user_prompt: str) -> str:
+    """Use Groq LLM to expand a simple prompt into a rich, detailed image generation prompt."""
+    groq_key = Config.GROQ_API_KEY or Config.get_groq_api_key()
+    if not groq_key:
+        return user_prompt  # fallback: use as-is
+
+    system_instruction = (
+        "You are an expert image generation prompt engineer. Your job is to take a user's simple image idea "
+        "and expand it into a rich, detailed, high-quality prompt optimized for state-of-the-art AI image generation models like FLUX.\n\n"
+        "Rules:\n"
+        "- Output ONLY the enhanced prompt. No explanations, no labels, no preamble.\n"
+        "- Keep it under 300 words.\n"
+        "- Describe subject, style, lighting, mood, composition, color palette, and quality cues.\n"
+        "- Use natural, descriptive language (not comma-separated keyword lists).\n"
+        "- Always include quality terms: photorealistic, sharp focus, high detail, professional photography (or relevant artistic style).\n"
+        "- Do not include anything offensive, harmful, or illegal."
+    )
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
+                json={
+                    "model": "llama-3.1-8b-instant",
+                    "messages": [
+                        {"role": "system", "content": system_instruction},
+                        {"role": "user", "content": f"Enhance this image prompt: {user_prompt}"}
+                    ],
+                    "max_tokens": 350,
+                    "temperature": 0.7,
+                }
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                enhanced = data["choices"][0]["message"]["content"].strip()
+                if enhanced:
+                    print(f"[Image Prompt Enhanced] Original: '{user_prompt[:80]}' → Enhanced: '{enhanced[:80]}...'")
+                    return enhanced
+    except Exception as e:
+        print(f"[Image Prompt Enhancement Error] {e} — using original prompt")
+    return user_prompt
 
 @app.post("/api/image/generate")
 async def generate_image_endpoint(req: ImageGenerateRequest, user: AuthenticatedUser = Depends(get_current_user)):
@@ -1286,12 +1330,17 @@ async def generate_image_endpoint(req: ImageGenerateRequest, user: Authenticated
         )
 
     # 2. Model & Aspect Ratio resolution
-    target_model = req.model if req.model in MODEL_DISPLAY_NAMES else "@cf/black-forest-labs/flux-1-schnell"
-    model_name = MODEL_DISPLAY_NAMES.get(target_model, "Flux 1. Schnell")
+    target_model = req.model if req.model in MODEL_DISPLAY_NAMES else "@cf/black-forest-labs/flux-2-dev"
+    model_name = MODEL_DISPLAY_NAMES.get(target_model, "Flux 2 Dev (Ultra HD Quality)")
     aspect_ratio = req.aspect_ratio if req.aspect_ratio in ASPECT_RATIO_DIMS else "1:1"
     width, height = ASPECT_RATIO_DIMS[aspect_ratio]
 
-    # 3. Call Cloudflare Worker API
+    # 3. AI Prompt Enhancement (if enabled)
+    original_prompt = prompt
+    if req.enhance_prompt:
+        prompt = await _enhance_image_prompt(prompt)
+
+    # 4. Call Cloudflare Worker API
     worker_url = os.getenv("CF_IMAGE_WORKER_URL", "https://orange-butterfly-ee8d.jayantkushwaha-cs.workers.dev")
     worker_key = os.getenv("CF_IMAGE_WORKER_API_KEY", "")
 
@@ -1305,7 +1354,7 @@ async def generate_image_endpoint(req: ImageGenerateRequest, user: Authenticated
     }
 
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=120.0) as client:
             resp = await client.post(worker_url, json=payload, headers=headers)
             if resp.status_code != 200:
                 error_detail = resp.text
