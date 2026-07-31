@@ -148,14 +148,26 @@ body.light-theme {
     flex-shrink: 0;
     height: 100%;
     z-index: 105;
-    transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), border-right 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    overflow: hidden;
+    will-change: width;
+    transition: width 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-right-color 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sidebar .brand-name,
+.sidebar .nav-btn span,
+.sidebar .user-name,
+.sidebar .recent-item-title,
+.sidebar .recent-section-header {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .sidebar.collapsed {
     width: 68px !important;
     opacity: 1 !important;
     pointer-events: auto !important;
-    overflow: visible !important;
+    overflow: hidden !important;
 }
 
 .sidebar.collapsed .brand-name {
@@ -1315,17 +1327,20 @@ body.light-theme .send-btn {
     flex-direction: column;
     position: relative;
     z-index: 10;
-    transition: width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), max-width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.35s ease;
+    overflow: hidden;
+    will-change: width, max-width, opacity;
+    transition: width 0.28s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.28s cubic-bezier(0.16, 1, 0.3, 1);
     flex-shrink: 0;
     min-width: 0;
 }
 
 .research-viewer.collapsed {
-    width: 0;
-    max-width: 0;
-    overflow: hidden;
-    border-left-color: transparent;
-    pointer-events: none;
+    width: 0 !important;
+    max-width: 0 !important;
+    opacity: 0 !important;
+    overflow: hidden !important;
+    border-left-color: transparent !important;
+    pointer-events: none !important;
 }
 
 .viewer-header {
@@ -4046,6 +4061,8 @@ body.light-theme {
         width: 100vw !important;
         height: 100vh !important;
         overflow: hidden !important;
+        will-change: grid-template-columns;
+        transition: grid-template-columns 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
 
     /* When sidebar is collapsed, shrink its grid column to match */
@@ -5341,6 +5358,23 @@ body.light-theme .chart-action-btn:hover {
     font-size: 11.5px;
     color: var(--text-muted);
     flex-grow: 1;
+}
+
+/* Lightbox Download Button Styling */
+#lightbox-download-btn {
+    background: linear-gradient(135deg, #0070f3 0%, #0051a8 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    font-weight: 600;
+    box-shadow: 0 4px 14px rgba(0, 112, 243, 0.35);
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+#lightbox-download-btn:hover {
+    background: linear-gradient(135deg, #0080ff 0%, #0060c8 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 6px 20px rgba(0, 112, 243, 0.5) !important;
+    transform: translateY(-1px) !important;
 }
 
 
