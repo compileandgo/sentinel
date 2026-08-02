@@ -942,6 +942,14 @@ body.light-theme .report-content a:hover {
     font-weight: 600;
 }
 
+.message-text h1:first-child,
+.message-text h2:first-child,
+.message-text h3:first-child,
+.message-text h4:first-child,
+.message-text > :first-child {
+    margin-top: 0 !important;
+}
+
 .message-text pre {
     background-color: var(--bg-card);
     border: 1px solid var(--border-card);
