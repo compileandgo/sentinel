@@ -1946,7 +1946,7 @@ body.light-theme .create-btn:hover {
 .viewer-body {
     flex-grow: 1;
     overflow-y: auto;
-    padding: 24px;
+    padding: 14px;
     display: flex;
     flex-direction: column;
     gap: 24px;
@@ -2397,7 +2397,7 @@ body.light-theme .create-btn:hover {
     }
 
     .chat-messages {
-        padding: 60px 8px 180px 8px !important;
+        padding: 60px 14px 180px 14px !important;
     }
     
     .input-container-outer {
@@ -2406,7 +2406,7 @@ body.light-theme .create-btn:hover {
 
     /* Keep viewer body content visible above Android nav buttons */
     .viewer-body {
-        padding-bottom: 80px !important;
+        padding: 14px 14px 80px 14px !important;
     }
 
     /* Fixed full-screen outline menu on mobile to avoid overflow */
