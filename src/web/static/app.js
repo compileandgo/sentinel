@@ -3214,8 +3214,8 @@ document.addEventListener("DOMContentLoaded", () => {
             activeChatContent.classList.add("hidden");
 
             let messages = chat_history || [];
-            if (messages.length === 0) {
-                // Fallback to default user query & assistant brief card if history is empty
+            if (messages.length === 0 && content && content.trim()) {
+                // Fallback to default user query & assistant brief card if history is empty AND a research report exists
                 messages = [
                     { role: "user", content: title },
                     { role: "assistant", type: "brief", content: content, date: dateStr }

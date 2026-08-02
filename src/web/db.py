@@ -132,8 +132,8 @@ def db_get_brief_content(user: AuthenticatedUser, filename: str) -> Optional[Dic
             msg_data["date"] = msg["created_at"][:16].replace("T", " ") + " UTC"
             chat_history.append(msg_data)
             
-        # Fallback: guarantee brief message with type='brief' exists in history for research briefs
-        if not any(m.get("type") == "brief" for m in chat_history):
+        # Fallback: guarantee brief message with type='brief' exists in history for actual research briefs
+        if content and content.strip() and not any(m.get("type") == "brief" for m in chat_history):
             brief_msg = {
                 "role": "assistant",
                 "type": "brief",
