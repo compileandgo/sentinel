@@ -150,7 +150,7 @@ class VoiceController {
 
         const inputEl = this.getInputElement();
         if (inputEl) {
-            inputEl.placeholder = "Ask Sentinel to research...";
+            inputEl.placeholder = (window.isDeepResearchEnabled) ? "Ask Sentinel to research..." : "Ask a question...";
         }
 
         if (this.recognition) {
@@ -230,7 +230,7 @@ class VoiceController {
             console.error('[Voice STT Error]', e);
         } finally {
             if (inputEl) {
-                inputEl.placeholder = "Ask Sentinel to research...";
+                inputEl.placeholder = (window.isDeepResearchEnabled) ? "Ask Sentinel to research..." : "Ask a question...";
             }
         }
     }

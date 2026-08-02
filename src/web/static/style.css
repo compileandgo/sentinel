@@ -2396,6 +2396,10 @@ body.light-theme .create-btn:hover {
         padding: 10px 14px !important;
     }
 
+    .image-studio-view {
+        padding: 65px 14px 120px 14px !important;
+    }
+
     .chat-messages {
         padding: 60px 14px 180px 14px !important;
     }

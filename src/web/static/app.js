@@ -77,7 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let isLightTheme = localStorage.getItem("theme") === "light";
     let currentBriefFilename = "";
     let recentBriefs = [];
-    let isDeepResearchEnabled = true;
+    let isDeepResearchEnabled = false;
     let activeRunId = null;
     let activeRunTopic = "";
     let activeRunStatus = "idle";
@@ -1837,7 +1837,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ── Close viewer ──────────────────────────────────────────────────────────
     closeViewerBtn.addEventListener("click", () => {
         researchViewer.classList.add("collapsed");
-        if (topicInput) topicInput.placeholder = "Ask Sentinel to research...";
+        if (topicInput) topicInput.placeholder = isDeepResearchEnabled ? "Ask Sentinel to research..." : "Ask a question...";
         updateDiscussionPlaceholder();
     });
 
@@ -2774,6 +2774,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function resetState(clearLocalStorage = true) {
+        closeImageStudioView();
         closeSearchView();
         closeSSE();
         currentRunId = null;
@@ -2910,7 +2911,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
 
-        if (topicInput) topicInput.placeholder = "Ask Sentinel to research...";
+        if (topicInput) topicInput.placeholder = isDeepResearchEnabled ? "Ask Sentinel to research..." : "Ask a question...";
         updateDiscussionPlaceholder();
     }
 
